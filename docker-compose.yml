@@ -1,0 +1,108 @@
+services:
+  auth-profile-service:
+    build: .
+    container_name: auth-profile-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://arcadia:arcadia@postgres:5432/auth_profile_db
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - arcadia-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: auth-profile-postgres
+    environment:
+      POSTGRES_USER: arcadia
+      POSTGRES_PASSWORD: arcadia
+      POSTGRES_DB: auth_profile_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_profile_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arcadia -d auth_profile_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - arcadia-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: auth-profile-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - arcadia-net
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: auth-profile-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # KRaft mode
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      # Listeners
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      # Controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # Protocol mapping
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+      # Single node settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+    volumes:
+      - auth_profile_kafka_data:/var/lib/kafka/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - arcadia-net
+
+
+networks:
+  arcadia-net:
+    driver: bridge
+
+
+volumes:
+  auth_profile_pgdata:
+  auth_profile_kafka_data:
