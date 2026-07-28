@@ -4,7 +4,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.domain.auth.exceptions import (
-    DomainError, DuplicateEmailError, InvalidCredentialsError, InvalidStateTransitionError,
+    AccountNotUsableError, DomainError, DuplicateEmailError, InvalidCredentialsError,
+    InvalidStateTransitionError,
     InvalidRoleTransitionError, UserNotFoundError, RoleRequestNotFoundError,
     RoleRequestAlreadyDecidedError, TokenError,
 )
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 _STATUS_MAP = {
     DuplicateEmailError: status.HTTP_409_CONFLICT,
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+    # 403, not 401: the credentials were correct and the account is not usable, so
+    # there is nothing to re-authenticate with and a 401 would invite a retry.
+    AccountNotUsableError: status.HTTP_403_FORBIDDEN,
     TokenError: status.HTTP_401_UNAUTHORIZED,
     InvalidStateTransitionError: status.HTTP_409_CONFLICT,
     InvalidRoleTransitionError: status.HTTP_403_FORBIDDEN,

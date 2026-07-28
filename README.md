@@ -40,7 +40,11 @@ Each dependency arrow only points from **outside to inside** (`Presentation → 
 ## Implemented Features
 
 ### Auth
-- Registration (`POST /auth/register`) → BASE USER created
+- Registration (`POST /v1/auth/register`) → a `BASIC_USER` in state `PENDING`. It was created
+`ACTIVE`, which made the approve/reject flow unreachable and failed five of this service's own
+tests. A pending account gets a **403 naming the reason** rather than "invalid email or password":
+that branch is only reachable with the correct password, so it leaks nothing and saves a user
+waiting on Support from believing they mistyped it.
 - Login with JWT access+refresh (`POST /auth/login`)
 - Refresh token (`POST /auth/refresh`) and Logout with revocation in Redis (`POST /auth/logout`)
 - Account state machine: `PENDING → ACTIVE/REJECTED`, `ACTIVE ↔ BANNED`
@@ -49,7 +53,9 @@ Each dependency arrow only points from **outside to inside** (`Presentation → 
 - ADMIN can directly change any user's role (`POST /admin/users/{id}/grant-role`)
 - Ban/Unban by Support/Admin
 - Initial Super-Admin created with `seed_super_admin()` at startup (idempotent)
-- `AbuseEventConsumer`: consumes `GiftCardAbuseDetected` → only **flags** for Support review (no automatic ban)
+- `AbuseEventConsumer`: consumes `arcadia.wallet.v1.GiftCardAbuseDetected` → only **flags** for
+Support review (no automatic ban), which is what requirement 1.5 asks for — the ban is at Support's
+discretion, so making it automatic would be the platform deciding something a human was asked to
 
 
 ### Profile (CQRS Read-Model)
@@ -74,25 +80,47 @@ Each dependency arrow only points from **outside to inside** (`Presentation → 
 
 Note: As per the requirements, Auth and Profile are placed in one shared service/deployment, but internally they remain completely separated (separate auth/ and profile/ folders in each layer) and communicate only through Events (user-events) - exactly like two independent microservices.
 
-## Running with Docker
+## Running
+
+This service is deployed by the infra repository along with the rest of the platform. It had its
+own `docker-compose.yml` standing up a second Postgres, Redis and Kafka; that is removed, because
+two compose files describing the same service is exactly the ambiguity `infra/README.md` says the
+platform avoids — and the two disagreed about the database name, the port and the JWT secret.
 
 ```bash
-cp .env.example .env
-docker compose up --build
+cd ../infra && make up && make wait
 ```
 
-The service starts at `http://localhost:8000`. OpenAPI documentation: `http://localhost:8000/docs`.
+REST on `http://localhost:8085`, OpenAPI at `/docs`, everything under `/v1`.
 
-After the first run, a Super-Admin is created with the email/password from `.env` (`SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD`)
+A Super-Admin is seeded once on first boot from `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD`.
+There is nobody to approve the first administrator, so that account is created ACTIVE — every
+other account starts PENDING and waits for Support.
 
-## Local Development
+## Local development
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+make install
+make test        # no database, broker or cache needed
+make run         # against the infra stack, on 8085
 ```
-(Requires Postgres/Redis/Kafka available according to `DATABASE_URL` / `REDIS_URL` / `KAFKA_BOOTSTRAP_SERVERS`)
+
+## Integration with the platform
+
+The things that had to match, because five other services already existed:
+
+| | |
+|---|---|
+| **Token claims** | `typ` (not `type`), plus `iss` and `aud`. Every service verifies all three; without the issuer and audience all five answered 401, and `type` meant `typ` arrived empty — which our verifiers read as "an access token", so this service's seven-day refresh tokens worked as credentials everywhere. Both halves are fixed: the claims here, and the verifiers made strict. |
+| **Event envelope** | `event_id`, `event_type`, `schema_version`, `occurred_at`, `producer`, `aggregate_type`, `aggregate_id`, and the domain fields nested under `payload`. Events were published flat, so the Go consumers rejected them as malformed and the Python ones found no payload. |
+| **Event names** | `arcadia.auth.v1.UserRegistered`, not `UserRegistered`. The wallet has routed on that exact string since before this service existed. |
+| **Topics** | One per *producing service* — `user-events`, `wallet-events`, `game-events` — not one per event. `ownership-events` and `gift-card-abuse-events` did not exist, so four of the five consumers were subscribed to nothing. Because a topic carries many event types, every handler routes on `event_type`. |
+| **Paths** | `/v1/...`, like everything else on the platform. |
+| **Health** | `/livez` and `/readyz` separately. Postgres is critical; Redis is not — losing it makes presence stale and a logged-out token valid until it expires, neither of which is worth refusing every login over. |
+
+`infra/test/e2e/test_00_identity.py` is what proves it: a registration provisions a wallet in
+another service with no HTTP call, and a purchase made with a token this service issued shows up in
+the profile library via the catalog's ownership event.
 
 ## Tests
 

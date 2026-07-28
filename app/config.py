@@ -14,8 +14,13 @@ class Settings(BaseSettings):
     sql_echo: bool = False
 
     # --- JWT ---
+    # Must match JWT_SECRET on every other service — they verify what this one signs.
     jwt_secret: str = "CHANGE_ME_IN_PRODUCTION"
     jwt_algorithm: str = "HS256"
+    # Required claims, not decoration. Every service on the platform verifies both, and a token
+    # without them is rejected by all five — which is what this service used to emit.
+    jwt_issuer: str = "arcadia-auth"
+    jwt_audience: str = "arcadia"
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 7
 
@@ -24,12 +29,20 @@ class Settings(BaseSettings):
 
     # --- Kafka ---
     kafka_bootstrap_servers: str = "localhost:9092"
+    # The platform's real topic names. These were invented per event — `ownership-events`,
+    # `gift-card-abuse-events` — and none of them existed, so four of the five consumers were
+    # subscribed to topics nothing ever published to.
+    #
+    # A topic here is per *producer*, not per event: `wallet-events` is every balance movement on
+    # the platform and `game-events` is every catalog change, so the handlers route on event_type
+    # rather than processing whatever arrives.
     kafka_topic_user_events: str = "user-events"
-    kafka_topic_gift_card_abuse: str = "gift-card-abuse-events"
-    kafka_topic_ownership: str = "ownership-events"
-    kafka_topic_item_granted: str = "item-events"
-    kafka_topic_post_reacted: str = "post-events"
-    kafka_topic_presence: str = "presence-events"
+    kafka_topic_wallet_events: str = "wallet-events"
+    kafka_topic_game_events: str = "game-events"
+    # Marketplace and Community do not exist yet. Named to match the convention so those consumers
+    # start working the day those services ship.
+    kafka_topic_trade_events: str = "trade-events"
+    kafka_topic_community_events: str = "community-events"
     kafka_consumer_group: str = "auth-profile-service"
 
     # --- Outbox dispatcher ---

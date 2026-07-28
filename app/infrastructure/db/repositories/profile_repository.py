@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -69,6 +69,24 @@ class SqlAlchemyProfileRepository(ProfileRepositoryPort):
             id=owned_game.id, user_id=owned_game.user_id, game_id=owned_game.game_id,
             hidden=owned_game.hidden, acquired_at=owned_game.acquired_at,
         ))
+        await self._session.commit()
+
+    async def owns_game(self, user_id: str, game_id: str) -> bool:
+        found = await self._session.execute(
+            select(OwnedGameModel.id).where(
+                OwnedGameModel.user_id == user_id,
+                OwnedGameModel.game_id == game_id,
+            )
+        )
+        return found.scalar_one_or_none() is not None
+
+    async def remove_owned_game(self, user_id: str, game_id: str) -> None:
+        await self._session.execute(
+            delete(OwnedGameModel).where(
+                OwnedGameModel.user_id == user_id,
+                OwnedGameModel.game_id == game_id,
+            )
+        )
         await self._session.commit()
 
     async def add_owned_item(self, owned_item: OwnedItem) -> None:

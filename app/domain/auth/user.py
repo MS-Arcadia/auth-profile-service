@@ -28,6 +28,39 @@ class User:
             password_hash=password_hash,
             display_name=display_name,
             role=Role.BASIC_USER,
+            # PENDING, not ACTIVE. Requirement 1.1 puts a new account in front of Support before
+            # it can be used, and the state machine it specifies starts there:
+            # PENDING → ACTIVE | REJECTED, then ACTIVE ↔ BANNED.
+            #
+            # This said ACTIVE, which made the whole approve/reject flow unreachable — nobody can
+            # be approved when everybody is already active — and failed five of this service's own
+            # tests, which had it right.
+            state=UserState.PENDING,
+        )
+        user._raise(ev.UserRegistered(
+            user_id=user.id, email=user.email, display_name=user.display_name,
+            role=user.role.value, state=user.state.value,
+        ))
+        return user
+
+    @staticmethod
+    def register_super_admin(email: str, password_hash: str, display_name: str) -> "User":
+        """The initial administrator from requirement 1.1, active immediately.
+
+        Its own factory rather than `register()` followed by assigning the fields, which is what
+        the seed used to do. That worked for the row and lied in the event: `UserRegistered` had
+        already been built with PENDING and BASIC_USER, so every consumer — the wallet among them
+        — learned that the platform's administrator was an ordinary user awaiting approval.
+
+        There is nobody to approve the first administrator, which is exactly why this bypasses the
+        state machine instead of pretending to go through it.
+        """
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email.lower().strip(),
+            password_hash=password_hash,
+            display_name=display_name,
+            role=Role.ADMIN,
             state=UserState.ACTIVE,
         )
         user._raise(ev.UserRegistered(

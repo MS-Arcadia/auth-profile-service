@@ -12,7 +12,10 @@ def test_register_starts_pending_with_basic_role():
     assert user.email == "test@example.com"  # normalized
     events = user.pull_events()
     assert len(events) == 1
-    assert events[0].event_type == "UserRegistered"
+    # The fully qualified name, which is what other services route on. It was the bare class
+    # name, and the wallet has been waiting for this exact string since before this service
+    # existed — a name it never matched.
+    assert events[0].event_type == "arcadia.auth.v1.UserRegistered"
 
 
 def test_approve_registration_moves_pending_to_active():

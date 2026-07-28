@@ -1,4 +1,4 @@
-from app.domain.auth.exceptions import InvalidCredentialsError
+from app.domain.auth.exceptions import AccountNotUsableError, InvalidCredentialsError
 from app.application.ports.auth_ports import UserRepositoryPort, PasswordHasherPort, JwtProviderPort
 
 
@@ -23,7 +23,10 @@ class LoginUseCase:
 
         if not user.can_login():
             await self._user_repo.record_login_audit(user.id, ip, success=False)
-            raise InvalidCredentialsError()
+            # A distinct error, because this branch is only reachable with the correct password —
+            # so it tells its owner something true and an attacker nothing they did not already
+            # have. The audit entry is still recorded as a failure: the sign-in did not happen.
+            raise AccountNotUsableError(user.state.value)
 
         await self._user_repo.record_login_audit(user.id, ip, success=True)
 

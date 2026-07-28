@@ -25,6 +25,26 @@ class InvalidCredentialsError(DomainError):
         super().__init__("Invalid email or password.")
 
 
+class AccountNotUsableError(DomainError):
+    """The password was right and the account still cannot be used.
+
+    Distinct from InvalidCredentialsError on purpose, and it leaks nothing: this is only ever
+    raised *after* the password has been verified, so only the account's rightful owner can see
+    it. Collapsing it into "invalid email or password" tells somebody waiting for Support to
+    approve their registration that they have forgotten their password — which is the one thing
+    they can be certain is untrue, and the one message that guarantees a support ticket.
+    """
+
+    def __init__(self, state: str):
+        messages = {
+            "PENDING": "This registration is waiting for a Support decision.",
+            "REJECTED": "This registration was rejected.",
+            "BANNED": "This account is banned. Contact support.",
+        }
+        super().__init__(messages.get(state, f"This account is {state} and cannot sign in."))
+        self.state = state
+
+
 class UserNotFoundError(DomainError):
     def __init__(self, user_id: str):
         super().__init__(f"User '{user_id}' was not found.")

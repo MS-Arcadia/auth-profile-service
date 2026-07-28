@@ -19,5 +19,10 @@ class RedisPresenceStore(PresenceStorePort):
     async def is_online(self, user_id: str) -> bool:
         return (await self._client.exists(f"{_PRESENCE_KEY_PREFIX}{user_id}")) == 1
 
+    async def ping(self) -> None:
+        """Raise if Redis is unreachable. Read by the readiness probe, which reports this as
+        degraded rather than down — presence going stale is not worth refusing logins over."""
+        await self._client.ping()
+
     async def close(self) -> None:
         await self._client.aclose()

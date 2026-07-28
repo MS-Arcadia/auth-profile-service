@@ -1,0 +1,15 @@
+# The real environment file, never committed.
+#
+# It was tracked, with a JWT secret in it. Development placeholders, so this was not an incident —
+# but a repository that tracks .env is one commit away from being one, and the fix is cheap.
+# `.env.example` is the template; copy it.
+.env
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/

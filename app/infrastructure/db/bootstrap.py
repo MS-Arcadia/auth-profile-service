@@ -20,15 +20,12 @@ async def seed_super_admin() -> None:
             return
 
         from app.domain.auth.user import User
-        admin = User.register(
+
+        admin = User.register_super_admin(
             email=settings.super_admin_email,
             password_hash=hasher.hash(settings.super_admin_password),
             display_name=settings.super_admin_display_name,
         )
-
-        admin.state = UserState.ACTIVE
-        admin.role = Role.ADMIN
-
         events = admin.pull_events()
         await repo.save(admin, events)
         logger.warning(

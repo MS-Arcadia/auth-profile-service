@@ -21,6 +21,23 @@ class ProfileRepositoryPort(ABC):
     async def add_owned_game(self, owned_game: OwnedGame) -> None: ...
 
     @abstractmethod
+    async def owns_game(self, user_id: str, game_id: str) -> bool:
+        """Whether this library already lists the game.
+
+        Exists because Kafka delivers at least once: without it a redelivered OwnershipGranted puts
+        the same game in a library twice, and nothing on the row prevents that.
+        """
+        ...
+
+    @abstractmethod
+    async def remove_owned_game(self, user_id: str, game_id: str) -> None:
+        """Take a game out of the library, for a refund or a defaulted instalment plan.
+
+        A no-op when it is not there, which is what makes a redelivered revocation harmless.
+        """
+        ...
+
+    @abstractmethod
     async def add_owned_item(self, owned_item: OwnedItem) -> None: ...
 
     @abstractmethod

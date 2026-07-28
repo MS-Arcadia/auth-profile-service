@@ -38,7 +38,16 @@ class RoleRequestRepositoryPort(ABC):
 class JwtProviderPort(ABC):
 
     @abstractmethod
-    def create_access_token(self, user_id: str, role: str) -> str: ...
+    def create_access_token(
+        self, user_id: str, role: str, scopes: list[str] | None = None
+    ) -> str:
+        """Mint an access token in the platform's claim shape.
+
+        `scopes` is optional and empty for a human login. It exists because the media service
+        already reads `media:read` off a token to let one service read another's private objects,
+        and a port that could not express that would force the caller around it.
+        """
+        ...
 
     @abstractmethod
     def create_refresh_token(self, user_id: str) -> str: ...
