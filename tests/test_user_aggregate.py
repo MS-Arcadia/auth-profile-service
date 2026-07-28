@@ -1,8 +1,8 @@
 import pytest
 
-from app.domain.auth.user import User
 from app.domain.auth.enums import Role, UserState
 from app.domain.auth.exceptions import InvalidStateTransitionError
+from app.domain.auth.user import User
 
 
 def test_register_starts_pending_with_basic_role():

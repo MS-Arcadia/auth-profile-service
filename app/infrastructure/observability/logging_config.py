@@ -1,9 +1,10 @@
 import logging
 import sys
+
 from pythonjsonlogger import jsonlogger
 
-from app.core.context import get_correlation_id
 from app.config import settings
+from app.core.context import get_correlation_id
 
 
 class CorrelationIdFilter(logging.Filter):
@@ -32,4 +33,6 @@ def configure_logging() -> None:
 
     # Quiet noisy third-party loggers a bit
     logging.getLogger("aiokafka").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING if not settings.sql_echo else logging.INFO)
+    logging.getLogger("sqlalchemy.engine").setLevel(
+        logging.WARNING if not settings.sql_echo else logging.INFO
+    )

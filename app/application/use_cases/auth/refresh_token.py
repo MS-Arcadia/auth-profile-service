@@ -1,9 +1,8 @@
+from app.application.ports.auth_ports import JwtProviderPort, TokenBlacklistPort, UserRepositoryPort
 from app.domain.auth.exceptions import TokenError, UserNotFoundError
-from app.application.ports.auth_ports import UserRepositoryPort, JwtProviderPort, TokenBlacklistPort
 
 
 class RefreshTokenUseCase:
-
     def __init__(
         self,
         user_repo: UserRepositoryPort,

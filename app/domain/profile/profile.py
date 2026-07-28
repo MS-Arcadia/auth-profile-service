@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 
 from app.domain.profile.value_objects import OwnedGame, OwnedItem, TopPost
 
@@ -14,12 +14,12 @@ class Profile:
     display_name: str
     avatar_url: str = ""
     online: bool = False
-    owned_games: List[OwnedGame] = field(default_factory=list)
-    owned_items: List[OwnedItem] = field(default_factory=list)
-    top_posts: List[TopPost] = field(default_factory=list)
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    owned_games: list[OwnedGame] = field(default_factory=list)
+    owned_items: list[OwnedItem] = field(default_factory=list)
+    top_posts: list[TopPost] = field(default_factory=list)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
-    def visible_games(self) -> List[OwnedGame]:
+    def visible_games(self) -> list[OwnedGame]:
         return [g for g in self.owned_games if not g.hidden]
 
     def hide_game(self, game_id: str) -> None:

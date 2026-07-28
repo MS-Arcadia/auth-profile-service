@@ -1,15 +1,14 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from app.domain.profile.profile import Profile
 from app.domain.profile.value_objects import OwnedGame, OwnedItem, TopPost
 
 
 class ProfileRepositoryPort(ABC):
-
     @abstractmethod
-    async def get_by_user_id(self, user_id: str) -> Optional[Profile]: ...
+    async def get_by_user_id(self, user_id: str) -> Profile | None: ...
 
     @abstractmethod
     async def save(self, profile: Profile) -> None: ...

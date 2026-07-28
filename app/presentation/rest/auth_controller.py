@@ -3,18 +3,24 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.application.dto.auth_dto import (
-    RegisterRequest, RegisterResponse, LoginRequest, TokenPairResponse,
-    RefreshRequest, LogoutRequest,
+    LoginRequest,
+    LogoutRequest,
+    RefreshRequest,
+    RegisterRequest,
+    RegisterResponse,
+    TokenPairResponse,
 )
-from app.application.use_cases.auth.register_user import RegisterUserUseCase
 from app.application.use_cases.auth.login import LoginUseCase
-from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from app.application.use_cases.auth.logout import LogoutUseCase
-from app.core.dependencies import (
-    get_register_user_use_case, get_login_use_case,
-    get_refresh_token_use_case, get_logout_use_case,
-)
+from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from app.application.use_cases.auth.register_user import RegisterUserUseCase
 from app.config import settings
+from app.core.dependencies import (
+    get_login_use_case,
+    get_logout_use_case,
+    get_refresh_token_use_case,
+    get_register_user_use_case,
+)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 limiter = Limiter(key_func=get_remote_address)

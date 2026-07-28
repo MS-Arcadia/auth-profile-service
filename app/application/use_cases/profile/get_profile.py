@@ -1,9 +1,8 @@
+from app.application.ports.profile_ports import PresenceStorePort, ProfileRepositoryPort
 from app.domain.profile.exceptions import ProfileNotFoundError
-from app.application.ports.profile_ports import ProfileRepositoryPort, PresenceStorePort
 
 
 class GetProfileUseCase:
-
     def __init__(self, profile_repo: ProfileRepositoryPort, presence_store: PresenceStorePort):
         self._profile_repo = profile_repo
         self._presence_store = presence_store

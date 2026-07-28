@@ -1,12 +1,12 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional, List
-import uuid
 
+import uuid
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+
+from app.domain.auth import events as ev
 from app.domain.auth.enums import Role, UserState
 from app.domain.auth.exceptions import InvalidStateTransitionError
-from app.domain.auth import events as ev
 
 
 @dataclass
@@ -17,11 +17,11 @@ class User:
     display_name: str
     role: Role
     state: UserState
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    _pending_events: List[ev.DomainEvent] = field(default_factory=list, repr=False, compare=False)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    _pending_events: list[ev.DomainEvent] = field(default_factory=list, repr=False, compare=False)
 
     @staticmethod
-    def register(email: str, password_hash: str, display_name: str) -> "User":
+    def register(email: str, password_hash: str, display_name: str) -> User:
         user = User(
             id=str(uuid.uuid4()),
             email=email.lower().strip(),
@@ -37,14 +37,19 @@ class User:
             # tests, which had it right.
             state=UserState.PENDING,
         )
-        user._raise(ev.UserRegistered(
-            user_id=user.id, email=user.email, display_name=user.display_name,
-            role=user.role.value, state=user.state.value,
-        ))
+        user._raise(
+            ev.UserRegistered(
+                user_id=user.id,
+                email=user.email,
+                display_name=user.display_name,
+                role=user.role.value,
+                state=user.state.value,
+            )
+        )
         return user
 
     @staticmethod
-    def register_super_admin(email: str, password_hash: str, display_name: str) -> "User":
+    def register_super_admin(email: str, password_hash: str, display_name: str) -> User:
         """The initial administrator from requirement 1.1, active immediately.
 
         Its own factory rather than `register()` followed by assigning the fields, which is what
@@ -63,10 +68,15 @@ class User:
             role=Role.ADMIN,
             state=UserState.ACTIVE,
         )
-        user._raise(ev.UserRegistered(
-            user_id=user.id, email=user.email, display_name=user.display_name,
-            role=user.role.value, state=user.state.value,
-        ))
+        user._raise(
+            ev.UserRegistered(
+                user_id=user.id,
+                email=user.email,
+                display_name=user.display_name,
+                role=user.role.value,
+                state=user.state.value,
+            )
+        )
         return user
 
     def approve_registration(self, decided_by: str) -> None:
@@ -97,9 +107,14 @@ class User:
         """Replaces the single role value -> invariant 'exactly one role' trivially preserved."""
         old_role = self.role
         self.role = new_role
-        self._raise(ev.RoleGranted(
-            user_id=self.id, old_role=old_role.value, new_role=new_role.value, granted_by=granted_by,
-        ))
+        self._raise(
+            ev.RoleGranted(
+                user_id=self.id,
+                old_role=old_role.value,
+                new_role=new_role.value,
+                granted_by=granted_by,
+            )
+        )
 
     def can_login(self) -> bool:
         return self.state == UserState.ACTIVE
@@ -110,6 +125,6 @@ class User:
     def _raise(self, event: ev.DomainEvent) -> None:
         self._pending_events.append(event)
 
-    def pull_events(self) -> List[ev.DomainEvent]:
+    def pull_events(self) -> list[ev.DomainEvent]:
         events, self._pending_events = self._pending_events, []
         return events

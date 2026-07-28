@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, status
 
 from app.application.dto.profile_dto import HideGameRequest
 from app.application.use_cases.profile.hide_game import HideGameUseCase
-from app.core.security_deps import get_current_user, CurrentUser
 from app.core.dependencies import get_hide_game_use_case
+from app.core.security_deps import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/profile/library", tags=["Library"])
 

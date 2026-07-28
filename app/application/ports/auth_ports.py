@@ -1,46 +1,43 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
-from typing import Optional, List, Sequence
 
-from app.domain.auth.user import User
-from app.domain.auth.role_request import RoleRequest
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+
 from app.domain.auth.events import DomainEvent
+from app.domain.auth.role_request import RoleRequest
+from app.domain.auth.user import User
 
 
 class UserRepositoryPort(ABC):
+    @abstractmethod
+    async def get_by_id(self, user_id: str) -> User | None: ...
 
     @abstractmethod
-    async def get_by_id(self, user_id: str) -> Optional[User]: ...
+    async def get_by_email(self, email: str) -> User | None: ...
 
     @abstractmethod
-    async def get_by_email(self, email: str) -> Optional[User]: ...
+    async def save(self, user: User, outbox_events: Sequence[DomainEvent]) -> None: ...
 
     @abstractmethod
-    async def save(self, user: User, outbox_events: Sequence[DomainEvent]) -> None:
-        ...
-
-    @abstractmethod
-    async def record_login_audit(self, user_id: Optional[str], ip: str, success: bool) -> None: ...
+    async def record_login_audit(self, user_id: str | None, ip: str, success: bool) -> None: ...
 
 
 class RoleRequestRepositoryPort(ABC):
+    @abstractmethod
+    async def get_role_request_by_id(self, request_id: str) -> RoleRequest | None: ...
 
     @abstractmethod
-    async def get_role_request_by_id(self, request_id: str) -> Optional[RoleRequest]: ...
+    async def list_pending_role_requests(self) -> list[RoleRequest]: ...
 
     @abstractmethod
-    async def list_pending_role_requests(self) -> List[RoleRequest]: ...
-
-    @abstractmethod
-    async def save_role_request(self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]) -> None: ...
+    async def save_role_request(
+        self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]
+    ) -> None: ...
 
 
 class JwtProviderPort(ABC):
-
     @abstractmethod
-    def create_access_token(
-        self, user_id: str, role: str, scopes: list[str] | None = None
-    ) -> str:
+    def create_access_token(self, user_id: str, role: str, scopes: list[str] | None = None) -> str:
         """Mint an access token in the platform's claim shape.
 
         `scopes` is optional and empty for a human login. It exists because the media service
@@ -60,7 +57,6 @@ class JwtProviderPort(ABC):
 
 
 class PasswordHasherPort(ABC):
-
     @abstractmethod
     def hash(self, plain_password: str) -> str: ...
 
@@ -69,7 +65,6 @@ class PasswordHasherPort(ABC):
 
 
 class TokenBlacklistPort(ABC):
-
     @abstractmethod
     async def revoke(self, jti: str, ttl_seconds: int) -> None: ...
 

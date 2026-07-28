@@ -5,7 +5,6 @@ SELF_REQUESTABLE_ROLES = {Role.DEVELOPER, Role.SUPPORT}
 
 
 class RolePolicy:
-
     @staticmethod
     def can_request(current_role: Role, requested_role: Role) -> bool:
         if requested_role == current_role:
@@ -20,7 +19,9 @@ class RolePolicy:
     @staticmethod
     def assert_can_decide_role_request(decider_role: Role) -> None:
         if decider_role not in (Role.SUPPORT, Role.ADMIN):
-            raise InvalidRoleTransitionError("Only SUPPORT or ADMIN can approve/reject role requests.")
+            raise InvalidRoleTransitionError(
+                "Only SUPPORT or ADMIN can approve/reject role requests."
+            )
 
     @staticmethod
     def assert_can_ban(actor_role: Role) -> None:
@@ -30,4 +31,6 @@ class RolePolicy:
     @staticmethod
     def assert_can_approve_registration(actor_role: Role) -> None:
         if actor_role not in (Role.SUPPORT, Role.ADMIN):
-            raise InvalidRoleTransitionError("Only SUPPORT or ADMIN can approve/reject registrations.")
+            raise InvalidRoleTransitionError(
+                "Only SUPPORT or ADMIN can approve/reject registrations."
+            )

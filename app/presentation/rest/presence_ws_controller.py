@@ -1,20 +1,21 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from app.application.use_cases.profile.update_presence import (
+    PRESENCE_TTL_SECONDS,
+    UpdatePresenceUseCase,
+)
 from app.core.security_deps import get_jwt_provider
 from app.domain.auth.exceptions import TokenError
 from app.infrastructure.cache.redis_presence_store import RedisPresenceStore
 from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
-from app.application.use_cases.profile.update_presence import (
-    UpdatePresenceUseCase, PRESENCE_TTL_SECONDS,
-)
 
 router = APIRouter(tags=["Presence"])
 logger = logging.getLogger(__name__)
 
-HEARTBEAT_EXPECTED_INTERVAL = 10  
+HEARTBEAT_EXPECTED_INTERVAL = 10
 
 
 @router.websocket("/ws/presence")
@@ -39,7 +40,7 @@ async def presence_heartbeat(websocket: WebSocket, token: str = Query(...)):
         while True:
             try:
                 await asyncio.wait_for(websocket.receive_text(), timeout=PRESENCE_TTL_SECONDS)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
             await use_case.execute(user_id)
     except WebSocketDisconnect:

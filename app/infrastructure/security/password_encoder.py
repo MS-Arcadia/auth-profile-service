@@ -6,7 +6,6 @@ _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class BcryptPasswordEncoder(PasswordHasherPort):
-
     def hash(self, plain_password: str) -> str:
         return _pwd_context.hash(plain_password)
 

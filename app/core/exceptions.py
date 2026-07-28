@@ -4,10 +4,16 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.domain.auth.exceptions import (
-    AccountNotUsableError, DomainError, DuplicateEmailError, InvalidCredentialsError,
+    AccountNotUsableError,
+    DomainError,
+    DuplicateEmailError,
+    InvalidCredentialsError,
+    InvalidRoleTransitionError,
     InvalidStateTransitionError,
-    InvalidRoleTransitionError, UserNotFoundError, RoleRequestNotFoundError,
-    RoleRequestAlreadyDecidedError, TokenError,
+    RoleRequestAlreadyDecidedError,
+    RoleRequestNotFoundError,
+    TokenError,
+    UserNotFoundError,
 )
 from app.domain.profile.exceptions import ProfileDomainError, ProfileNotFoundError
 

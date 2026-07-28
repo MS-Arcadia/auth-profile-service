@@ -14,7 +14,7 @@ VENV     := .venv
 PY       := $(VENV)/bin/python
 
 .DEFAULT_GOAL := help
-.PHONY: help install test run docker clean
+.PHONY: help install test lint fmt run docker clean
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -28,6 +28,14 @@ install: ## Create the virtualenv and install dependencies
 
 test: ## Run the tests (no database, broker or cache needed)
 	$(PY) -m pytest -q
+
+lint: ## ruff check plus format check
+	$(VENV)/bin/ruff check .
+	$(VENV)/bin/ruff format --check .
+
+fmt: ## Format the code
+	$(VENV)/bin/ruff format .
+	$(VENV)/bin/ruff check --fix .
 
 run: ## Run locally against the infra stack
 	$(VENV)/bin/uvicorn app.main:app --reload --port 8085

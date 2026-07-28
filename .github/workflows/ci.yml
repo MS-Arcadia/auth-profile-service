@@ -1,0 +1,145 @@
+# Auth & profile service pipeline.
+#
+# Lint, test, then build the image. The tests need no database, broker or cache: the domain has no
+# dependency on any of them, which is the whole point of the four-layer split — and it is what makes
+# this fast enough to run on every push.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint
+        run: |
+          ruff check --output-format=github .
+          ruff format --check .
+
+      - name: Test
+        run: pytest -q
+
+      - name: The model imports that create the schema are still there
+        # `Base.metadata.create_all` only creates tables that have been registered, and importing a
+        # model *module* is what registers one. Without those imports in main.py the metadata holds
+        # zero tables and the service starts against an empty schema — and `ruff --fix` will delete
+        # them as unused, because from Python's point of view they are.
+        #
+        # Asserted rather than trusted, because the failure is silent: the service boots, and the
+        # first query is the one that says the table is missing.
+        run: |
+          python - <<'PY'
+          from app.infrastructure.db.base import Base
+          import app.main  # noqa: F401 - importing it is what registers the tables
+          tables = sorted(Base.metadata.tables)
+          assert len(tables) >= 8, f"only {len(tables)} tables registered: {tables}"
+          print(f"{len(tables)} tables registered: {', '.join(tables)}")
+          PY
+
+  image:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: arcadia/auth-profile-service:${{ github.sha }}
+          build-args: VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: The image starts and reports unready without a database
+        # A container that cannot reach Postgres must report DOWN rather than UP, and must still
+        # answer /livez. Conflating the two turns a database blip into a restart loop that makes an
+        # outage worse, and a service that exits instead of reporting is a rollout you cannot see.
+        #
+        # This service did exit: `create_all` ran unconditionally at startup and took the process
+        # down with it. RUN_MIGRATIONS and KAFKA_ENABLED exist so it behaves like the rest of the
+        # platform, and this step is what keeps it that way.
+        run: |
+          docker run -d --name auth \
+            -e DATABASE_URL=postgresql+asyncpg://nobody:nobody@127.0.0.1:5432/nothing \
+            -e JWT_SECRET=ci-only-secret-at-least-32-characters-long \
+            -e JWT_ISSUER=arcadia-auth \
+            -e JWT_AUDIENCE=arcadia \
+            -e REDIS_URL=redis://127.0.0.1:6379/0 \
+            -e KAFKA_ENABLED=false \
+            -e RUN_MIGRATIONS=false \
+            -p 8085:8085 \
+            arcadia/auth-profile-service:${{ github.sha }}
+          for i in $(seq 1 30); do
+            if curl -sf localhost:8085/livez >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf localhost:8085/livez | grep -q UP
+          echo "liveness is up"
+          status=$(curl -s -o /dev/null -w '%{http_code}' localhost:8085/readyz)
+          [ "$status" = "503" ] || { echo "expected 503 from /readyz, got $status"; docker logs auth; exit 1; }
+          echo "readiness correctly reports 503 with no database"
+          docker rm -f auth
+
+      - name: A weak or placeholder secret is refused outside development
+        # The defaults in config.py are convenient and dangerous in equal measure: a deployment that
+        # forgets one variable would otherwise sign every token on the platform with a secret
+        # published in this repository. The guard refuses to boot; this checks that it does.
+        #
+        # Two cases, because two different rules catch them and the first version of this step only
+        # exercised one. The shipped default is 23 characters, so the length rule fires and the
+        # placeholder rule never runs — a long-but-placeholder secret is what tests the second.
+        #
+        # The exit code is captured from `$?` rather than by piping into `tee`, because a pipeline
+        # reports the *last* command's status: `docker run ... | tee` succeeds whenever tee does, so
+        # the original step could not have failed even if the service booted happily. Named `rc`
+        # rather than `status`, which is read-only in zsh and makes this unrunnable by hand there.
+        run: |
+          set +e
+          for case in "short:weak" "placeholder:local-development-jwt-secret-change-me-please"; do
+            label=${case%%:*}
+            secret=${case#*:}
+            out=$(docker run --rm \
+              -e ENV=production \
+              -e JWT_SECRET="$secret" \
+              -e DATABASE_URL=postgresql+asyncpg://nobody:nobody@127.0.0.1:5432/nothing \
+              -e RUN_MIGRATIONS=false -e KAFKA_ENABLED=false \
+              arcadia/auth-profile-service:${{ github.sha }} 2>&1)
+            rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "the service booted in production with a $label JWT_SECRET"
+              echo "$out"
+              exit 1
+            fi
+            echo "$out" | grep -qi "jwt_secret" || {
+              echo "it refused to boot, but not because of JWT_SECRET:"; echo "$out"; exit 1; }
+            echo "a $label secret is refused in production"
+          done

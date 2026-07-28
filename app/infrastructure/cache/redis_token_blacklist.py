@@ -7,7 +7,6 @@ _BLACKLIST_KEY_PREFIX = "auth:revoked_jti:"
 
 
 class RedisTokenBlacklist(TokenBlacklistPort):
-
     def __init__(self):
         self._client = redis.from_url(settings.redis_url, decode_responses=True)
 

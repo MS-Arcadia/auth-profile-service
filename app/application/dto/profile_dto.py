@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import List
 
 
 class OwnedGameResponse(BaseModel):
@@ -23,9 +22,9 @@ class ProfileResponse(BaseModel):
     display_name: str
     avatar_url: str
     online: bool
-    owned_games: List[OwnedGameResponse]
-    owned_items: List[OwnedItemResponse]
-    top_posts: List[TopPostResponse]
+    owned_games: list[OwnedGameResponse]
+    owned_items: list[OwnedItemResponse]
+    top_posts: list[TopPostResponse]
 
 
 class HideGameRequest(BaseModel):

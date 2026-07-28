@@ -19,7 +19,7 @@ disagree, that suite is what says so.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -29,7 +29,7 @@ from app.domain.auth.exceptions import TokenError
 
 # The claim name the whole platform uses, as a constant so the two places that touch it cannot
 # drift apart.
-TOKEN_TYPE_CLAIM = "typ"
+TOKEN_TYPE_CLAIM = "typ"  # noqa: S105 - a claim name, not a secret
 ACCESS = "access"
 REFRESH = "refresh"
 
@@ -65,7 +65,7 @@ class JwtTokenProvider(JwtProviderPort):
         return self._sign({"sub": user_id, TOKEN_TYPE_CLAIM: REFRESH}, self._refresh_ttl)
 
     def _sign(self, claims: dict, ttl: timedelta) -> str:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload = {
             **claims,
             "iss": self._issuer,

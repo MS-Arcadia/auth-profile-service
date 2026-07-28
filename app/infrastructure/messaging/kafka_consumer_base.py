@@ -1,7 +1,8 @@
 import asyncio
+import contextlib
 import json
 import logging
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from aiokafka import AIOKafkaConsumer
 
@@ -47,10 +48,10 @@ class KafkaConsumerBase:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            # Awaiting a cancelled task is how you wait for it to actually stop; the
+            # CancelledError it raises is the confirmation, not a failure.
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         if self._consumer:
             await self._consumer.stop()
         logger.info("Kafka consumer stopped for topic=%s", self._topic)
@@ -71,13 +72,18 @@ class KafkaConsumerBase:
             except Exception:
                 logger.exception(
                     "Handler failed for topic=%s attempt=%s/%s payload=%s",
-                    self._topic, attempt, self._max_retries, payload,
+                    self._topic,
+                    attempt,
+                    self._max_retries,
+                    payload,
                 )
                 if attempt == self._max_retries:
                     logger.error(
                         "Giving up on message for topic=%s after %s attempts; "
                         "would route to DLQ in production (%s)",
-                        self._topic, self._max_retries, payload,
+                        self._topic,
+                        self._max_retries,
+                        payload,
                     )
                 else:
                     await asyncio.sleep(0.5 * attempt)

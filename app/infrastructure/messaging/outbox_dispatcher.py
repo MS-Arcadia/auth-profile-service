@@ -1,13 +1,14 @@
 import asyncio
+import contextlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, update
 
 from app.config import settings
-from app.infrastructure.db.session import db_session_scope
 from app.infrastructure.db.models.outbox_model import OutboxModel
+from app.infrastructure.db.session import db_session_scope
 from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ def _rfc3339(moment: datetime) -> str:
     hand one back. Assume UTC rather than emit something the other half of the platform cannot
     read."""
     if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
+        moment = moment.replace(tzinfo=UTC)
     return moment.isoformat()
 
 
@@ -69,16 +70,18 @@ class OutboxDispatcher:
     def start(self) -> None:
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.info("OutboxDispatcher started (poll_interval=%ss)", settings.outbox_poll_interval_seconds)
+        logger.info(
+            "OutboxDispatcher started (poll_interval=%ss)", settings.outbox_poll_interval_seconds
+        )
 
     async def stop(self) -> None:
         self._running = False
         if self._task:
             self._task.cancel()
-            try:
+            # Awaiting a cancelled task is how you wait for it to actually stop; the
+            # CancelledError it raises is the confirmation, not a failure.
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-            except asyncio.CancelledError:
-                pass
         logger.info("OutboxDispatcher stopped")
 
     async def _run_loop(self) -> None:
@@ -112,10 +115,13 @@ class OutboxDispatcher:
                     await session.execute(
                         update(OutboxModel)
                         .where(OutboxModel.id == row.id)
-                        .values(dispatched=True, dispatched_at=datetime.now(timezone.utc))
+                        .values(dispatched=True, dispatched_at=datetime.now(UTC))
                     )
                     await session.commit()
                 except Exception:
-                    logger.exception("Failed to dispatch outbox row id=%s (topic=%s) - left for retry",
-                                      row.id, row.topic)
+                    logger.exception(
+                        "Failed to dispatch outbox row id=%s (topic=%s) - left for retry",
+                        row.id,
+                        row.topic,
+                    )
                     await session.rollback()

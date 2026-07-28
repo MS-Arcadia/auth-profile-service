@@ -1,9 +1,8 @@
+from app.application.ports.auth_ports import JwtProviderPort, PasswordHasherPort, UserRepositoryPort
 from app.domain.auth.exceptions import AccountNotUsableError, InvalidCredentialsError
-from app.application.ports.auth_ports import UserRepositoryPort, PasswordHasherPort, JwtProviderPort
 
 
 class LoginUseCase:
-
     def __init__(
         self,
         user_repo: UserRepositoryPort,

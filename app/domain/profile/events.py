@@ -1,6 +1,6 @@
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
 import uuid
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 
 # Profile's own namespace. Auth and Profile share a deployment but are separate contexts, and
 # their events should say so — something subscribing to presence has no business receiving
@@ -11,7 +11,7 @@ NAMESPACE = "arcadia.profile.v1"
 @dataclass(frozen=True)
 class DomainEvent:
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    occurred_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    occurred_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     @property
     def event_type(self) -> str:

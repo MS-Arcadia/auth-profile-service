@@ -1,10 +1,9 @@
-from app.domain.auth.user import User
+from app.application.ports.auth_ports import PasswordHasherPort, UserRepositoryPort
 from app.domain.auth.exceptions import DuplicateEmailError
-from app.application.ports.auth_ports import UserRepositoryPort, PasswordHasherPort
+from app.domain.auth.user import User
 
 
 class RegisterUserUseCase:
-
     def __init__(self, user_repo: UserRepositoryPort, password_hasher: PasswordHasherPort):
         self._user_repo = user_repo
         self._hasher = password_hasher

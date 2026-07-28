@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends
 
 from app.application.dto.profile_dto import (
-    ProfileResponse, OwnedGameResponse, OwnedItemResponse, TopPostResponse,
+    OwnedGameResponse,
+    OwnedItemResponse,
+    ProfileResponse,
+    TopPostResponse,
 )
 from app.application.use_cases.profile.get_profile import GetProfileUseCase
-from app.core.security_deps import get_current_user, CurrentUser
 from app.core.dependencies import get_profile_use_case
+from app.core.security_deps import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 

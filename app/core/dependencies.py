@@ -1,28 +1,26 @@
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.db.session import get_db_session
-from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
-from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
-from app.infrastructure.security.jwt_provider import JwtTokenProvider
-from app.infrastructure.security.password_encoder import BcryptPasswordEncoder
-from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
+from app.application.use_cases.auth.approve_registration import ApproveRegistrationUseCase
+from app.application.use_cases.auth.ban_user import BanUserUseCase
+from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
+from app.application.use_cases.auth.grant_role import GrantRoleUseCase
+from app.application.use_cases.auth.login import LoginUseCase
+from app.application.use_cases.auth.logout import LogoutUseCase
+from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
+from app.application.use_cases.auth.register_user import RegisterUserUseCase
+from app.application.use_cases.auth.request_role import RequestRoleUseCase
+from app.application.use_cases.profile.get_profile import GetProfileUseCase
+from app.application.use_cases.profile.hide_game import HideGameUseCase
+from app.application.use_cases.profile.update_presence import UpdatePresenceUseCase
 from app.infrastructure.cache.redis_presence_store import RedisPresenceStore
 from app.infrastructure.cache.redis_token_blacklist import RedisTokenBlacklist
-
-from app.application.use_cases.auth.register_user import RegisterUserUseCase
-from app.application.use_cases.auth.login import LoginUseCase
-from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
-from app.application.use_cases.auth.logout import LogoutUseCase
-from app.application.use_cases.auth.approve_registration import ApproveRegistrationUseCase
-from app.application.use_cases.auth.grant_role import GrantRoleUseCase
-from app.application.use_cases.auth.request_role import RequestRoleUseCase
-from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
-from app.application.use_cases.auth.ban_user import BanUserUseCase
-
-from app.application.use_cases.profile.get_profile import GetProfileUseCase
-from app.application.use_cases.profile.update_presence import UpdatePresenceUseCase
-from app.application.use_cases.profile.hide_game import HideGameUseCase
+from app.infrastructure.db.repositories.profile_repository import SqlAlchemyProfileRepository
+from app.infrastructure.db.repositories.user_repository import SqlAlchemyUserRepository
+from app.infrastructure.db.session import get_db_session
+from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
+from app.infrastructure.security.jwt_provider import JwtTokenProvider
+from app.infrastructure.security.password_encoder import BcryptPasswordEncoder
 
 _password_hasher = BcryptPasswordEncoder()
 _jwt_provider = JwtTokenProvider()
@@ -42,11 +40,15 @@ def get_token_blacklist(request: Request) -> RedisTokenBlacklist:
 
 
 # --- repositories (per-request, bound to the request's DB session) ---
-def get_user_repository(session: AsyncSession = Depends(get_db_session)) -> SqlAlchemyUserRepository:
+def get_user_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> SqlAlchemyUserRepository:
     return SqlAlchemyUserRepository(session)
 
 
-def get_profile_repository(session: AsyncSession = Depends(get_db_session)) -> SqlAlchemyProfileRepository:
+def get_profile_repository(
+    session: AsyncSession = Depends(get_db_session),
+) -> SqlAlchemyProfileRepository:
     return SqlAlchemyProfileRepository(session)
 
 
@@ -91,7 +93,7 @@ def get_grant_role_use_case(
 def get_request_role_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ) -> RequestRoleUseCase:
-    return RequestRoleUseCase(user_repo, user_repo) 
+    return RequestRoleUseCase(user_repo, user_repo)
 
 
 def get_decide_role_request_use_case(

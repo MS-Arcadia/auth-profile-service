@@ -2,7 +2,6 @@ from app.application.ports.profile_ports import ProfileRepositoryPort
 
 
 class UserSyncProjector:
-
     def __init__(self, profile_repo: ProfileRepositoryPort):
         self._profile_repo = profile_repo
 

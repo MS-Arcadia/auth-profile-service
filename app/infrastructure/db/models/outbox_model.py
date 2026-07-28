@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
-from sqlalchemy import String, DateTime, Boolean, Text
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.db.base import Base
@@ -17,5 +17,7 @@ class OutboxModel(Base):
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON-serialized
     dispatched: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    dispatched_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

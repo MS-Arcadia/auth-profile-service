@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
 import uuid
-
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 
 # The platform's event namespace for this service. Every other service uses the same shape —
 # `arcadia.<service>.v1.<Event>` — and consumers route on the whole string, so a bare class name
@@ -13,7 +12,7 @@ NAMESPACE = "arcadia.auth.v1"
 @dataclass(frozen=True)
 class DomainEvent:
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    occurred_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    occurred_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     @property
     def event_type(self) -> str:

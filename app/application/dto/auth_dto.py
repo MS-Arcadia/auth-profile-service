@@ -1,5 +1,4 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
 
 
 class RegisterRequest(BaseModel):
@@ -22,7 +21,8 @@ class LoginRequest(BaseModel):
 class TokenPairResponse(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    # OAuth2's literal, not a credential — bandit sees the field name and guesses.
+    token_type: str = "bearer"  # noqa: S105
 
 
 class RefreshRequest(BaseModel):
@@ -44,7 +44,7 @@ class RoleRequestResponse(BaseModel):
 
 class DecideRoleRequest(BaseModel):
     approve: bool
-    note: Optional[str] = None
+    note: str | None = None
 
 
 class GrantRoleRequest(BaseModel):
@@ -52,7 +52,7 @@ class GrantRoleRequest(BaseModel):
 
 
 class BanRequest(BaseModel):
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class UserSummaryResponse(BaseModel):

@@ -2,8 +2,8 @@ import logging
 
 from sqlalchemy import select
 
-from app.infrastructure.db.session import db_session_scope
 from app.infrastructure.db.models.user_model import UserModel
+from app.infrastructure.db.session import db_session_scope
 from app.infrastructure.messaging.envelope import route
 
 logger = logging.getLogger(__name__)
@@ -47,5 +47,7 @@ class AbuseEventConsumer:
 
             logger.warning(
                 "FLAGGED FOR SUPPORT REVIEW: user_id=%s email=%s reason=%s (no auto-ban applied)",
-                user.id, user.email, payload.get("reason", "gift-card abuse pattern"),
+                user.id,
+                user.email,
+                payload.get("reason", "gift-card abuse pattern"),
             )

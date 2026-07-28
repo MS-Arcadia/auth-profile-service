@@ -3,29 +3,30 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 
 from app.config import settings
-from app.infrastructure.observability.logging_config import configure_logging
-from app.infrastructure.observability.tracing import configure_tracing
-from app.infrastructure.observability.metrics import configure_metrics
-from app.core.middleware import CorrelationIdMiddleware
 from app.core.exceptions import register_exception_handlers
-
-from app.infrastructure.db.session import engine
+from app.core.middleware import CorrelationIdMiddleware
+from app.infrastructure.cache.redis_presence_store import RedisPresenceStore
+from app.infrastructure.cache.redis_token_blacklist import RedisTokenBlacklist
 from app.infrastructure.db.base import Base
 from app.infrastructure.db.bootstrap import seed_super_admin
 
-from app.infrastructure.db.models import (  
-    user_model, role_request_model, login_audit_model, outbox_model, profile_models,
+# Imported for their side effect, not for their names: importing a model module is what registers
+# its table on `Base.metadata`, and `create_all` below only creates what is registered. Without
+# these five lines the metadata holds **zero** tables and the service starts against an empty
+# schema. `ruff --fix` will happily delete them as unused, so they are marked.
+from app.infrastructure.db.models import (  # noqa: F401
+    login_audit_model,
+    outbox_model,
+    profile_models,
+    role_request_model,
+    user_model,
 )
-
-from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
-from app.infrastructure.messaging.outbox_dispatcher import OutboxDispatcher
-from app.infrastructure.messaging.topics import ensure_topics
-from app.infrastructure.messaging.kafka_consumer_base import KafkaConsumerBase
+from app.infrastructure.db.session import engine
 from app.infrastructure.messaging.consumers.abuse_event_consumer import AbuseEventConsumer
 from app.infrastructure.messaging.consumers.profile_event_consumers import (
     handle_community_events,
@@ -33,12 +34,19 @@ from app.infrastructure.messaging.consumers.profile_event_consumers import (
     handle_marketplace_events,
     handle_user_events,
 )
-from app.infrastructure.cache.redis_presence_store import RedisPresenceStore
-from app.infrastructure.cache.redis_token_blacklist import RedisTokenBlacklist
-
+from app.infrastructure.messaging.kafka_consumer_base import KafkaConsumerBase
+from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
+from app.infrastructure.messaging.outbox_dispatcher import OutboxDispatcher
+from app.infrastructure.messaging.topics import ensure_topics
+from app.infrastructure.observability.logging_config import configure_logging
+from app.infrastructure.observability.metrics import configure_metrics
+from app.infrastructure.observability.tracing import configure_tracing
 from app.presentation.rest import (
-    auth_controller, role_admin_controller, profile_controller,
-    library_controller, presence_ws_controller,
+    auth_controller,
+    library_controller,
+    presence_ws_controller,
+    profile_controller,
+    role_admin_controller,
 )
 
 configure_logging()
@@ -48,13 +56,23 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- DB schema ---
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await seed_super_admin()
+    #
+    # Behind a switch, like RUN_MIGRATIONS on the other services. With it off the service still
+    # starts, serves /livez and reports /readyz 503 — which is what makes a bad rollout visible
+    # instead of a crash loop, and what CI asserts by starting the image with no database at all.
+    if settings.run_migrations:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await seed_super_admin()
+    else:
+        logger.warning("RUN_MIGRATIONS is off: the schema is assumed to exist already")
 
     # --- Singleton adapters ---
     event_publisher = KafkaEventPublisher()
-    await event_publisher.start()
+    if settings.kafka_enabled:
+        await event_publisher.start()
+    else:
+        logger.warning("kafka is disabled: events will accumulate in the outbox unpublished")
     app.state.event_publisher = event_publisher
 
     presence_store = RedisPresenceStore()
@@ -65,13 +83,15 @@ async def lifespan(app: FastAPI):
 
     # --- Outbox dispatcher (Transactional Outbox -> Kafka relay) ---
     outbox_dispatcher = OutboxDispatcher(event_publisher)
-    outbox_dispatcher.start()
+    if settings.kafka_enabled:
+        outbox_dispatcher.start()
     app.state.outbox_dispatcher = outbox_dispatcher
 
     # Before any consumer subscribes. Auto-creation is off on this platform, and a consumer on a
     # topic that does not exist logs a metadata error on every refresh — about ten lines a second,
     # each, which on first boot buried everything real.
-    await ensure_topics()
+    if settings.kafka_enabled:
+        await ensure_topics()
 
     # --- Kafka consumers ---
     # One consumer per topic, each with its own group so a slow projection cannot hold up an
@@ -80,34 +100,46 @@ async def lifespan(app: FastAPI):
     # debit, credit and hold on the platform.
     abuse_consumer_logic = AbuseEventConsumer()
     consumers = [
-        KafkaConsumerBase(settings.kafka_topic_wallet_events,
-                          f"{settings.kafka_consumer_group}-abuse",
-                          abuse_consumer_logic.handle),
-        KafkaConsumerBase(settings.kafka_topic_user_events,
-                          f"{settings.kafka_consumer_group}-user-sync",
-                          handle_user_events),
-        KafkaConsumerBase(settings.kafka_topic_game_events,
-                          f"{settings.kafka_consumer_group}-library",
-                          handle_game_events),
-        KafkaConsumerBase(settings.kafka_topic_trade_events,
-                          f"{settings.kafka_consumer_group}-inventory",
-                          handle_marketplace_events),
-        KafkaConsumerBase(settings.kafka_topic_community_events,
-                          f"{settings.kafka_consumer_group}-top-posts",
-                          handle_community_events),
+        KafkaConsumerBase(
+            settings.kafka_topic_wallet_events,
+            f"{settings.kafka_consumer_group}-abuse",
+            abuse_consumer_logic.handle,
+        ),
+        KafkaConsumerBase(
+            settings.kafka_topic_user_events,
+            f"{settings.kafka_consumer_group}-user-sync",
+            handle_user_events,
+        ),
+        KafkaConsumerBase(
+            settings.kafka_topic_game_events,
+            f"{settings.kafka_consumer_group}-library",
+            handle_game_events,
+        ),
+        KafkaConsumerBase(
+            settings.kafka_topic_trade_events,
+            f"{settings.kafka_consumer_group}-inventory",
+            handle_marketplace_events,
+        ),
+        KafkaConsumerBase(
+            settings.kafka_topic_community_events,
+            f"{settings.kafka_consumer_group}-top-posts",
+            handle_community_events,
+        ),
     ]
-    for consumer in consumers:
-        await consumer.start()
+    if settings.kafka_enabled:
+        for consumer in consumers:
+            await consumer.start()
     app.state.consumers = consumers
 
     logger.info("%s started successfully", settings.app_name)
     yield
 
     # --- Shutdown: reverse order ---
-    for consumer in consumers:
-        await consumer.stop()
-    await outbox_dispatcher.stop()
-    await event_publisher.stop()
+    if settings.kafka_enabled:
+        for consumer in consumers:
+            await consumer.stop()
+        await outbox_dispatcher.stop()
+        await event_publisher.stop()
     await presence_store.close()
     await token_blacklist.close()
     await engine.dispose()
@@ -183,14 +215,14 @@ async def readyz() -> JSONResponse:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
         checks["postgres"] = {"status": "UP"}
-    except Exception as exc:  # noqa: BLE001 - the reason belongs in the response
+    except Exception as exc:
         checks["postgres"] = {"status": "DOWN", "error": str(exc)[:200]}
         healthy = False
 
     try:
         await app.state.presence_store.ping()
         checks["redis"] = {"status": "UP"}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         checks["redis"] = {"status": "DEGRADED", "error": str(exc)[:200]}
 
     report = {

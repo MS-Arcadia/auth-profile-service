@@ -1,8 +1,8 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.domain.auth.enums import Role
 from app.domain.auth.exceptions import TokenError
@@ -29,13 +29,15 @@ async def get_current_user(
     try:
         claims = _jwt_provider.decode_access_token(credentials.credentials)
     except TokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+        # `from exc` so the traceback shows which token check failed rather than presenting the
+        # HTTPException as though it arose on its own inside the handler.
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
     return CurrentUser(user_id=claims["sub"], role=Role(claims["role"]))
 
 
 def require_roles(*allowed_roles: Role):
-    
+
     allowed: Iterable[Role] = allowed_roles
 
     async def _check(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:

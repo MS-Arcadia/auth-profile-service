@@ -1,5 +1,5 @@
-from app.domain.profile.profile import Profile, MAX_TOP_POSTS
-from app.domain.profile.value_objects import TopPost, OwnedGame
+from app.domain.profile.profile import MAX_TOP_POSTS, Profile
+from app.domain.profile.value_objects import OwnedGame, TopPost
 
 
 def _make_post(post_id: str, score: int) -> TopPost:

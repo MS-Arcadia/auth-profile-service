@@ -32,7 +32,9 @@ class FakeRow:
     aggregate_id: str = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb"
     event_type: str = "arcadia.auth.v1.UserRegistered"
     created_at: datetime = datetime(2026, 7, 28, 12, 0, tzinfo=UTC)
-    payload: str = json.dumps({"user_id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", "role": "BASIC_USER"})
+    payload: str = json.dumps(
+        {"user_id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", "role": "BASIC_USER"}
+    )
 
 
 # --- what this service publishes ----------------------------------------
@@ -64,7 +66,10 @@ def test_the_published_message_is_a_platform_envelope():
 
     assert message["event_id"] == FakeRow.id
     assert message["event_type"] == "arcadia.auth.v1.UserRegistered"
-    assert message["schema_version"] == SCHEMA_VERSION >= 1
+    # Spelled out rather than chained: `x == SCHEMA_VERSION >= 1` reads like two assertions and is
+    # one, and the version being positive is the half the Go validator actually enforces.
+    assert message["schema_version"] == SCHEMA_VERSION
+    assert SCHEMA_VERSION >= 1
     assert message["aggregate_type"] == "User"
     assert message["aggregate_id"] == FakeRow.aggregate_id
     assert message["producer"]

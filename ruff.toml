@@ -1,0 +1,32 @@
+# The same rules as the other Python services on this platform.
+#
+# A `ruff.toml` rather than a `[tool.ruff]` block, because this service pins its dependencies in
+# `requirements.txt` and has no `pyproject.toml`. Ruff reads either; the rule set is what matters
+# for uniformity, not which file it lives in.
+
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "ASYNC",# async correctness
+    "S",    # security (bandit)
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "RUF",
+]
+ignore = [
+    # Asserts in tests are the point of tests.
+    "S101",
+    # FastAPI's dependency injection is function calls in defaults by design.
+    "B008",
+]
+
+[lint.per-file-ignores]
+# Test fixtures use predictable ids and throwaway secrets on purpose.
+"tests/*" = ["S105", "S106", "S311"]
