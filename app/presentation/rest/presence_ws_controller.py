@@ -20,7 +20,6 @@ HEARTBEAT_EXPECTED_INTERVAL = 10
 
 @router.websocket("/ws/presence")
 async def presence_heartbeat(websocket: WebSocket, token: str = Query(...)):
-
     jwt_provider = get_jwt_provider()
     try:
         claims = jwt_provider.decode_access_token(token)

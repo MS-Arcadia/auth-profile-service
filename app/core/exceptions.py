@@ -36,7 +36,6 @@ _STATUS_MAP = {
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-
     @app.exception_handler(DomainError)
     async def handle_domain_error(request: Request, exc: DomainError):
         status_code = _STATUS_MAP.get(type(exc), status.HTTP_400_BAD_REQUEST)

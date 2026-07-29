@@ -25,7 +25,6 @@ def get_jwt_provider() -> JwtTokenProvider:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
 ) -> CurrentUser:
-
     try:
         claims = _jwt_provider.decode_access_token(credentials.credentials)
     except TokenError as exc:
@@ -37,7 +36,6 @@ async def get_current_user(
 
 
 def require_roles(*allowed_roles: Role):
-
     allowed: Iterable[Role] = allowed_roles
 
     async def _check(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
