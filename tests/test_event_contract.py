@@ -22,6 +22,9 @@ from app.domain.profile import events as profile_events
 from app.infrastructure.messaging.envelope import Envelope, MalformedEnvelope, route
 from app.infrastructure.messaging.outbox_dispatcher import SCHEMA_VERSION, envelope_for
 
+_FAKE_USER_ID = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb"
+_FAKE_PAYLOAD = json.dumps({"user_id": _FAKE_USER_ID, "role": "BASIC_USER"})
+
 
 @dataclass
 class FakeRow:
@@ -29,12 +32,10 @@ class FakeRow:
 
     id: str = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa"
     aggregate_type: str = "User"
-    aggregate_id: str = "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb"
+    aggregate_id: str = _FAKE_USER_ID
     event_type: str = "arcadia.auth.v1.UserRegistered"
     created_at: datetime = datetime(2026, 7, 28, 12, 0, tzinfo=UTC)
-    payload: str = json.dumps(
-        {"user_id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", "role": "BASIC_USER"}
-    )
+    payload: str = _FAKE_PAYLOAD
 
 
 # --- what this service publishes ----------------------------------------
