@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 
+from app.domain.auth.enums import UserState
 from app.domain.auth.events import DomainEvent
 from app.domain.auth.role_request import RoleRequest
 from app.domain.auth.user import User
@@ -14,6 +15,16 @@ class UserRepositoryPort(ABC):
 
     @abstractmethod
     async def get_by_email(self, email: str) -> User | None: ...
+
+    @abstractmethod
+    async def list_ids_by_state(self, state: UserState) -> list[str]:
+        """Return the ids of every user in the given state.
+
+        Exists for platform-wide broadcasts (e.g. a festival going live, which is meant to
+        notify every active user): the caller needs the full audience, not a page of it, so
+        this returns ids only rather than a paginated list of full `User` records.
+        """
+        ...
 
     @abstractmethod
     async def save(self, user: User, outbox_events: Sequence[DomainEvent]) -> None: ...

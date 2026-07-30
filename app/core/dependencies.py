@@ -5,6 +5,7 @@ from app.application.use_cases.auth.approve_registration import ApproveRegistrat
 from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
+from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
 from app.application.use_cases.auth.login import LoginUseCase
 from app.application.use_cases.auth.logout import LogoutUseCase
 from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
@@ -106,6 +107,12 @@ def get_ban_user_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ) -> BanUserUseCase:
     return BanUserUseCase(user_repo)
+
+
+def get_list_active_user_ids_use_case(
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+) -> ListActiveUserIdsUseCase:
+    return ListActiveUserIdsUseCase(user_repo)
 
 
 # --- Profile use cases ---

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.application.dto.auth_dto import (
     BanRequest,
@@ -11,16 +11,18 @@ from app.application.use_cases.auth.approve_registration import ApproveRegistrat
 from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
+from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
 from app.application.use_cases.auth.request_role import RequestRoleUseCase
 from app.core.dependencies import (
     get_approve_registration_use_case,
     get_ban_user_use_case,
     get_decide_role_request_use_case,
     get_grant_role_use_case,
+    get_list_active_user_ids_use_case,
     get_request_role_use_case,
 )
 from app.core.security_deps import CurrentUser, get_current_user, require_roles
-from app.domain.auth.enums import Role
+from app.domain.auth.enums import Role, UserState
 
 router = APIRouter(tags=["Roles & Admin"])
 
@@ -100,6 +102,25 @@ async def ban_user(
     await use_case.execute(
         current_user.role, user_id, True, current_user.user_id, body.reason or ""
     )
+
+
+@router.get(
+    "/admin/users/ids",
+    response_model=list[str],
+    dependencies=[Depends(require_roles(Role.SUPPORT, Role.ADMIN))],
+)
+async def list_user_ids(
+    user_state: UserState = Query(UserState.ACTIVE, alias="status"),
+    current_user: CurrentUser = Depends(get_current_user),
+    use_case: ListActiveUserIdsUseCase = Depends(get_list_active_user_ids_use_case),
+):
+    """Internal directory lookup: every user id in the given state (default ACTIVE).
+
+    Meant for service-to-service calls that need "everyone" — e.g. festival-service
+    populating a platform-wide `FestivalStarted` notification audience — not for browser
+    clients, hence living under `/admin` next to the other SUPPORT/ADMIN-only routes.
+    """
+    return await use_case.execute(current_user.role, user_state)
 
 
 @router.post(

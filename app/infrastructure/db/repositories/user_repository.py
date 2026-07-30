@@ -54,6 +54,10 @@ class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
         row = result.scalar_one_or_none()
         return _to_domain_user(row) if row else None
 
+    async def list_ids_by_state(self, state: UserState) -> list[str]:
+        result = await self._session.execute(select(UserModel.id).where(UserModel.state == state))
+        return list(result.scalars().all())
+
     async def save(self, user: User, outbox_events: Sequence[DomainEvent]) -> None:
         row = await self._session.get(UserModel, user.id)
         if row is None:
