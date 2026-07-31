@@ -87,7 +87,9 @@ async def test_a_second_reaction_updates_the_same_top_post_rather_than_duplicati
         "feedback_score": 1,
     }
     await TopPostsProjector(repo).handle(base_event)
-    await TopPostsProjector(repo).handle({**base_event, "user_id": "reactor-2", "feedback_score": 2})
+    await TopPostsProjector(repo).handle(
+        {**base_event, "user_id": "reactor-2", "feedback_score": 2}
+    )
 
     assert len(repo.top_posts) == 1
     assert repo.top_posts[("author-1", "post-1")].feedback_score == 2
