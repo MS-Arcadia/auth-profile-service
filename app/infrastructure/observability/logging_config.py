@@ -33,6 +33,4 @@ def configure_logging() -> None:
 
     # Quiet noisy third-party loggers a bit
     logging.getLogger("aiokafka").setLevel(logging.WARNING)
-    logging.getLogger("sqlalchemy.engine").setLevel(
-        logging.WARNING if not settings.sql_echo else logging.INFO
-    )
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING if not settings.sql_echo else logging.INFO)

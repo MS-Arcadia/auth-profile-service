@@ -9,9 +9,7 @@ class DecideRoleRequestUseCase:
         self._user_repo = user_repo
         self._role_request_repo = role_request_repo
 
-    async def execute(
-        self, actor_role: Role, request_id: str, approve: bool, decided_by: str, note: str = ""
-    ) -> None:
+    async def execute(self, actor_role: Role, request_id: str, approve: bool, decided_by: str, note: str = "") -> None:
         RolePolicy.assert_can_decide_role_request(actor_role)
 
         role_request = await self._role_request_repo.get_role_request_by_id(request_id)

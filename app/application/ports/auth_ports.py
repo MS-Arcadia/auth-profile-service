@@ -41,9 +41,7 @@ class RoleRequestRepositoryPort(ABC):
     async def list_pending_role_requests(self) -> list[RoleRequest]: ...
 
     @abstractmethod
-    async def save_role_request(
-        self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]
-    ) -> None: ...
+    async def save_role_request(self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]) -> None: ...
 
 
 class JwtProviderPort(ABC):

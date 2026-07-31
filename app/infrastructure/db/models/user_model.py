@@ -16,12 +16,8 @@ class UserModel(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(64), nullable=False)
-    role: Mapped[Role] = mapped_column(
-        SAEnum(Role, name="role_enum"), nullable=False, default=Role.BASIC_USER
-    )
+    role: Mapped[Role] = mapped_column(SAEnum(Role, name="role_enum"), nullable=False, default=Role.BASIC_USER)
     state: Mapped[UserState] = mapped_column(
         SAEnum(UserState, name="user_state_enum"), nullable=False, default=UserState.PENDING
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

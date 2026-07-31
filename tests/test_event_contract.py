@@ -107,9 +107,7 @@ def test_a_flat_event_is_refused_with_a_message_that_says_why():
     """The shape this service used to publish. Refused rather than tolerated, because a flat event
     on one of these topics means a producer is broken and silence would hide it."""
     with pytest.raises(MalformedEnvelope, match="flat event"):
-        Envelope.parse(
-            {"event_id": "1", "event_type": "arcadia.auth.v1.UserRegistered", "user_id": "u-1"}
-        )
+        Envelope.parse({"event_id": "1", "event_type": "arcadia.auth.v1.UserRegistered", "user_id": "u-1"})
 
 
 def test_an_envelope_with_no_identity_is_refused():

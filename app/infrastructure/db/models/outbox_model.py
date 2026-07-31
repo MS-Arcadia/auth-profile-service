@@ -17,7 +17,5 @@ class OutboxModel(Base):
     event_type: Mapped[str] = mapped_column(String(128), nullable=False)
     payload: Mapped[str] = mapped_column(Text, nullable=False)  # JSON-serialized
     dispatched: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

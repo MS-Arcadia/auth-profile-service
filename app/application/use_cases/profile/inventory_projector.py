@@ -11,9 +11,7 @@ class InventoryProjector:
     async def handle(self, event: dict) -> None:
         """event = {"user_id": ..., "item_id": ..., "game_id": ...}"""
         user_id = event["user_id"]
-        await self._profile_repo.create_if_missing(
-            user_id, display_name=event.get("display_name", "")
-        )
+        await self._profile_repo.create_if_missing(user_id, display_name=event.get("display_name", ""))
 
         owned_item = OwnedItem(
             id=str(uuid.uuid4()),

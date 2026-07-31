@@ -100,9 +100,7 @@ class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
         )
         return [_to_domain_role_request(r) for r in result.scalars().all()]
 
-    async def save_role_request(
-        self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]
-    ) -> None:
+    async def save_role_request(self, role_request: RoleRequest, outbox_events: Sequence[DomainEvent]) -> None:
         row = await self._session.get(RoleRequestModel, role_request.id)
         if row is None:
             row = RoleRequestModel(id=role_request.id, user_id=role_request.user_id)

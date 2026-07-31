@@ -25,14 +25,9 @@ async def get_profile(
         display_name=profile.display_name,
         avatar_url=profile.avatar_url,
         online=profile.online,
-        owned_games=[
-            OwnedGameResponse(game_id=g.game_id, hidden=g.hidden) for g in profile.visible_games()
-        ],
-        owned_items=[
-            OwnedItemResponse(item_id=i.item_id, game_id=i.game_id) for i in profile.owned_items
-        ],
+        owned_games=[OwnedGameResponse(game_id=g.game_id, hidden=g.hidden) for g in profile.visible_games()],
+        owned_items=[OwnedItemResponse(item_id=i.item_id, game_id=i.game_id) for i in profile.owned_items],
         top_posts=[
-            TopPostResponse(post_id=p.post_id, feedback_score=p.feedback_score, rank=p.rank)
-            for p in profile.top_posts
+            TopPostResponse(post_id=p.post_id, feedback_score=p.feedback_score, rank=p.rank) for p in profile.top_posts
         ],
     )

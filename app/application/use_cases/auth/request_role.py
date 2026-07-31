@@ -22,9 +22,7 @@ class RequestRoleUseCase:
             )
 
         role_request = RoleRequest.create(user_id=user_id, requested_role=requested_role)
-        event = RoleRequested(
-            request_id=role_request.id, user_id=user_id, requested_role=requested_role.value
-        )
+        event = RoleRequested(request_id=role_request.id, user_id=user_id, requested_role=requested_role.value)
 
         await self._role_request_repo.save_role_request(role_request, [event])
         return role_request

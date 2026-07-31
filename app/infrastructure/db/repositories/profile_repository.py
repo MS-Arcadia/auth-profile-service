@@ -62,29 +62,19 @@ class SqlAlchemyProfileRepository(ProfileRepositoryPort):
         if row is None:
             return None
         games = (
-            (
-                await self._session.execute(
-                    select(OwnedGameModel).where(OwnedGameModel.user_id == user_id)
-                )
-            )
+            (await self._session.execute(select(OwnedGameModel).where(OwnedGameModel.user_id == user_id)))
             .scalars()
             .all()
         )
         items = (
-            (
-                await self._session.execute(
-                    select(OwnedItemModel).where(OwnedItemModel.user_id == user_id)
-                )
-            )
+            (await self._session.execute(select(OwnedItemModel).where(OwnedItemModel.user_id == user_id)))
             .scalars()
             .all()
         )
         posts = (
             (
                 await self._session.execute(
-                    select(TopPostModel)
-                    .where(TopPostModel.user_id == user_id)
-                    .order_by(TopPostModel.rank)
+                    select(TopPostModel).where(TopPostModel.user_id == user_id).order_by(TopPostModel.rank)
                 )
             )
             .scalars()
@@ -205,9 +195,7 @@ class SqlAlchemyProfileRepository(ProfileRepositoryPort):
     async def set_hidden(self, user_id: str, game_id: str, hidden: bool) -> None:
         row = (
             await self._session.execute(
-                select(OwnedGameModel).where(
-                    OwnedGameModel.user_id == user_id, OwnedGameModel.game_id == game_id
-                )
+                select(OwnedGameModel).where(OwnedGameModel.user_id == user_id, OwnedGameModel.game_id == game_id)
             )
         ).scalar_one_or_none()
         if row:

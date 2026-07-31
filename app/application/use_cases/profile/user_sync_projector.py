@@ -7,6 +7,4 @@ class UserSyncProjector:
 
     async def handle(self, event: dict) -> None:
         """event = {"user_id": ..., "display_name": ...}"""
-        await self._profile_repo.create_if_missing(
-            user_id=event["user_id"], display_name=event.get("display_name", "")
-        )
+        await self._profile_repo.create_if_missing(user_id=event["user_id"], display_name=event.get("display_name", ""))

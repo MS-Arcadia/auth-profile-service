@@ -25,37 +25,27 @@ class OwnedGameModel(Base):
     __tablename__ = "owned_games"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("profiles.user_id"), nullable=False, index=True
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.user_id"), nullable=False, index=True)
     game_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    acquired_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
-    )
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class OwnedItemModel(Base):
     __tablename__ = "owned_items"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("profiles.user_id"), nullable=False, index=True
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.user_id"), nullable=False, index=True)
     item_id: Mapped[str] = mapped_column(String(36), nullable=False)
     game_id: Mapped[str] = mapped_column(String(36), nullable=False)
-    acquired_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
-    )
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class TopPostModel(Base):
     __tablename__ = "top_posts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("profiles.user_id"), nullable=False, index=True
-    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("profiles.user_id"), nullable=False, index=True)
     post_id: Mapped[str] = mapped_column(String(36), nullable=False)
     feedback_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     rank: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

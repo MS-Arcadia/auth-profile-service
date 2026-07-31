@@ -27,9 +27,7 @@ from app.domain.auth.enums import Role, UserState
 router = APIRouter(tags=["Roles & Admin"])
 
 
-@router.post(
-    "/roles/request", response_model=RoleRequestResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/roles/request", response_model=RoleRequestResponse, status_code=status.HTTP_201_CREATED)
 async def request_role(
     body: RequestRoleRequest,
     current_user: CurrentUser = Depends(get_current_user),
@@ -52,9 +50,7 @@ async def decide_role_request(
     use_case: DecideRoleRequestUseCase = Depends(get_decide_role_request_use_case),
 ):
     """SUPPORT/ADMIN approves or rejects a pending Developer/Support role request."""
-    await use_case.execute(
-        current_user.role, request_id, body.approve, current_user.user_id, body.note or ""
-    )
+    await use_case.execute(current_user.role, request_id, body.approve, current_user.user_id, body.note or "")
 
 
 @router.post(
@@ -68,9 +64,7 @@ async def decide_registration(
     current_user: CurrentUser = Depends(get_current_user),
     use_case: ApproveRegistrationUseCase = Depends(get_approve_registration_use_case),
 ):
-    await use_case.execute(
-        current_user.role, user_id, body.approve, current_user.user_id, body.note or ""
-    )
+    await use_case.execute(current_user.role, user_id, body.approve, current_user.user_id, body.note or "")
 
 
 @router.post(
@@ -99,9 +93,7 @@ async def ban_user(
     use_case: BanUserUseCase = Depends(get_ban_user_use_case),
 ):
     """SUPPORT/ADMIN bans a user (ACTIVE -> BANNED)."""
-    await use_case.execute(
-        current_user.role, user_id, True, current_user.user_id, body.reason or ""
-    )
+    await use_case.execute(current_user.role, user_id, True, current_user.user_id, body.reason or "")
 
 
 @router.get(

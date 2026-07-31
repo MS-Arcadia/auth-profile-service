@@ -8,9 +8,7 @@ class BanUserUseCase:
     def __init__(self, user_repo: UserRepositoryPort):
         self._user_repo = user_repo
 
-    async def execute(
-        self, actor_role: Role, target_user_id: str, ban: bool, actor_id: str, reason: str = ""
-    ) -> None:
+    async def execute(self, actor_role: Role, target_user_id: str, ban: bool, actor_id: str, reason: str = "") -> None:
         RolePolicy.assert_can_ban(actor_role)
 
         user = await self._user_repo.get_by_id(target_user_id)

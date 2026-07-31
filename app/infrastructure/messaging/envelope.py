@@ -47,17 +47,13 @@ class Envelope:
         event_id = str(message.get("event_id") or "")
         event_type = str(message.get("event_type") or "")
         if not event_id or not event_type:
-            raise MalformedEnvelope(
-                f"event_id and event_type are required; got {event_id!r} / {event_type!r}"
-            )
+            raise MalformedEnvelope(f"event_id and event_type are required; got {event_id!r} / {event_type!r}")
 
         payload = message.get("payload")
         if not isinstance(payload, dict):
             # The specific shape this service used to publish, and the specific reason nothing
             # could read it. Named explicitly so the message says what is wrong.
-            raise MalformedEnvelope(
-                f"{event_type} has no `payload` object — a flat event is not a platform event"
-            )
+            raise MalformedEnvelope(f"{event_type} has no `payload` object — a flat event is not a platform event")
 
         return Envelope(
             event_id=event_id,

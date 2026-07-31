@@ -41,9 +41,7 @@ class LibraryProjector:
         if await self._profile_repo.owns_game(user_id, game_id):
             return
 
-        await self._profile_repo.add_owned_game(
-            OwnedGame(id=str(uuid.uuid4()), user_id=user_id, game_id=game_id)
-        )
+        await self._profile_repo.add_owned_game(OwnedGame(id=str(uuid.uuid4()), user_id=user_id, game_id=game_id))
 
     async def revoke(self, payload: dict) -> None:
         """`arcadia.catalog.v1.OwnershipRevoked` — a refund, or an instalment plan that defaulted.

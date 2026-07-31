@@ -70,9 +70,7 @@ class OutboxDispatcher:
     def start(self) -> None:
         self._running = True
         self._task = asyncio.create_task(self._run_loop())
-        logger.info(
-            "OutboxDispatcher started (poll_interval=%ss)", settings.outbox_poll_interval_seconds
-        )
+        logger.info("OutboxDispatcher started (poll_interval=%ss)", settings.outbox_poll_interval_seconds)
 
     async def stop(self) -> None:
         self._running = False

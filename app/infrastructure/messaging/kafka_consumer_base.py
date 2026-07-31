@@ -79,8 +79,7 @@ class KafkaConsumerBase:
                 )
                 if attempt == self._max_retries:
                     logger.error(
-                        "Giving up on message for topic=%s after %s attempts; "
-                        "would route to DLQ in production (%s)",
+                        "Giving up on message for topic=%s after %s attempts; " "would route to DLQ in production (%s)",
                         self._topic,
                         self._max_retries,
                         payload,

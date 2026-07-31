@@ -15,9 +15,7 @@ async def seed_super_admin() -> None:
         repo = SqlAlchemyUserRepository(session)
         existing = await repo.get_by_email(settings.super_admin_email)
         if existing is not None:
-            logger.info(
-                "Super-Admin already exists (email=%s) - skipping seed", settings.super_admin_email
-            )
+            logger.info("Super-Admin already exists (email=%s) - skipping seed", settings.super_admin_email)
             return
 
         from app.domain.auth.user import User

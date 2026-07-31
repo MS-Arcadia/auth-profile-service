@@ -8,9 +8,7 @@ class GrantRoleUseCase:
     def __init__(self, user_repo: UserRepositoryPort):
         self._user_repo = user_repo
 
-    async def execute(
-        self, actor_role: Role, target_user_id: str, new_role: Role, granted_by: str
-    ) -> None:
+    async def execute(self, actor_role: Role, target_user_id: str, new_role: Role, granted_by: str) -> None:
         RolePolicy.assert_can_grant(actor_role, new_role)
 
         user = await self._user_repo.get_by_id(target_user_id)

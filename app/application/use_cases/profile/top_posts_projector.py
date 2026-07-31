@@ -16,9 +16,7 @@ class TopPostsProjector:
         for its own idempotency and audit trail.
         """
         author_id = event["author_id"]
-        await self._profile_repo.create_if_missing(
-            author_id, display_name=event.get("display_name", "")
-        )
+        await self._profile_repo.create_if_missing(author_id, display_name=event.get("display_name", ""))
 
         top_post = TopPost(
             id=str(uuid.uuid4()),
