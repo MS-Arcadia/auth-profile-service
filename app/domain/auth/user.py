@@ -35,7 +35,7 @@ class User:
             # This said ACTIVE, which made the whole approve/reject flow unreachable — nobody can
             # be approved when everybody is already active — and failed five of this service's own
             # tests, which had it right.
-            state=UserState.ACTIVE,
+            state=UserState.PENDING,
         )
         user._raise(
             ev.UserRegistered(
