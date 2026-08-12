@@ -34,3 +34,21 @@ def configure_logging() -> None:
     # Quiet noisy third-party loggers a bit
     logging.getLogger("aiokafka").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING if not settings.sql_echo else logging.INFO)
+
+    # uvicorn installs its own handlers and does not propagate, so everything
+    # above missed it: its lines went out as plain text next to this service's
+    # JSON. Clearing the handlers and letting them propagate puts uvicorn's
+    # startup and error output through the same formatter.
+    #
+    # uvicorn.access is silenced outright rather than reformatted. It is written
+    # by the protocol layer after the ASGI app has returned, which is outside the
+    # scope of the correlation id, so it can never carry one — and
+    # CorrelationIdMiddleware now emits an access line that can.
+    for name in ("uvicorn", "uvicorn.error"):
+        uvicorn_logger = logging.getLogger(name)
+        uvicorn_logger.handlers = []
+        uvicorn_logger.propagate = True
+
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.handlers = []
+    access_logger.propagate = False
