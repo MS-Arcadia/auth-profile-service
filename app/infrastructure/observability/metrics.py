@@ -38,9 +38,7 @@ def configure_metrics(app: FastAPI, *, service: str) -> None:
     """Instrument every request and expose /metrics."""
 
     @app.middleware("http")
-    async def _observe(
-        request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
+    async def _observe(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         started = time.perf_counter()
         response = await call_next(request)
         elapsed = time.perf_counter() - started
@@ -48,9 +46,7 @@ def configure_metrics(app: FastAPI, *, service: str) -> None:
         route = request.scope.get("route")
         route_label = getattr(route, "path", request.url.path)
 
-        requests_total.labels(
-            service, request.method, route_label, str(response.status_code)
-        ).inc()
+        requests_total.labels(service, request.method, route_label, str(response.status_code)).inc()
         request_duration.labels(service, request.method, route_label).observe(elapsed)
         return response
 
