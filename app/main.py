@@ -156,7 +156,7 @@ app = FastAPI(
 app.add_middleware(CorrelationIdMiddleware)
 
 register_exception_handlers(app)
-configure_metrics(app)
+configure_metrics(app, service=settings.app_name)
 configure_tracing(app)
 
 # --- Rate limiting (slowapi) ---
