@@ -74,7 +74,7 @@ class Settings(BaseSettings):
 
     # --- Super Admin bootstrap (seeded on first startup if not present) ---
     super_admin_email: str = "admin@arcadia.com"
-    super_admin_password: str = "ChangeMe123!"  # noqa: S105
+    super_admin_password: str = "admin-password"  # noqa: S105
     super_admin_display_name: str = "Super Admin"
 
     @property

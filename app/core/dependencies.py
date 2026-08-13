@@ -22,7 +22,9 @@ from app.infrastructure.db.session import get_db_session
 from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
 from app.infrastructure.security.jwt_provider import JwtTokenProvider
 from app.infrastructure.security.password_encoder import BcryptPasswordEncoder
-
+from app.application.use_cases.auth.list_pending_role_requests import (
+    ListPendingRoleRequestsUseCase,
+)
 _password_hasher = BcryptPasswordEncoder()
 _jwt_provider = JwtTokenProvider()
 
@@ -134,3 +136,8 @@ def get_hide_game_use_case(
     profile_repo: SqlAlchemyProfileRepository = Depends(get_profile_repository),
 ) -> HideGameUseCase:
     return HideGameUseCase(profile_repo)
+
+def get_list_pending_role_requests_use_case(
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+) -> ListPendingRoleRequestsUseCase:
+    return ListPendingRoleRequestsUseCase(user_repo)
