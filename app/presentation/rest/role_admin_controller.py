@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, status
 
 from app.application.dto.auth_dto import (
+    AdminUserResponse,
     BanRequest,
     DecideRoleRequest,
     GrantRoleRequest,
@@ -16,6 +17,7 @@ from app.application.use_cases.auth.list_active_user_ids import ListActiveUserId
 from app.application.use_cases.auth.list_pending_role_requests import (
     ListPendingRoleRequestsUseCase,
 )
+from app.application.use_cases.auth.list_users import ListUsersUseCase
 from app.application.use_cases.auth.request_role import RequestRoleUseCase
 from app.core.dependencies import (
     get_approve_registration_use_case,
@@ -24,6 +26,7 @@ from app.core.dependencies import (
     get_grant_role_use_case,
     get_list_active_user_ids_use_case,
     get_list_pending_role_requests_use_case,
+    get_list_users_use_case,
     get_request_role_use_case,
 )
 from app.core.security_deps import CurrentUser, get_current_user, require_roles
@@ -99,6 +102,38 @@ async def ban_user(
 ):
     """SUPPORT/ADMIN bans a user (ACTIVE -> BANNED)."""
     await use_case.execute(current_user.role, user_id, True, current_user.user_id, body.reason or "")
+
+
+@router.get(
+    "/admin/users",
+    response_model=list[AdminUserResponse],
+    dependencies=[Depends(require_roles(Role.SUPPORT, Role.ADMIN))],
+)
+async def list_users(
+    user_state: UserState | None = Query(None, alias="status"),
+    current_user: CurrentUser = Depends(get_current_user),
+    use_case: ListUsersUseCase = Depends(get_list_users_use_case),
+):
+    """The admin screen's directory: every account, with enough of each to act on it.
+
+    `/admin/users/ids` answers a different question — "who is everybody", for a platform-wide
+    broadcast — and returns bare ids. A person deciding whether to grant a role or ban somebody
+    needs the name, the email, the role and the state, which an id list cannot show. The
+    storefront was calling a `/admin/users` that did not exist, so the screen listed nobody
+    while its ban and grant-role buttons worked perfectly on people it could not display.
+    """
+    users = await use_case.execute(current_user.role, user_state)
+    return [
+        AdminUserResponse(
+            user_id=user.id,
+            email=user.email,
+            display_name=user.display_name,
+            role=user.role.value,
+            state=user.state.value,
+            created_at=user.created_at,
+        )
+        for user in users
+    ]
 
 
 @router.get(

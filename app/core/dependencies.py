@@ -9,6 +9,7 @@ from app.application.use_cases.auth.list_active_user_ids import ListActiveUserId
 from app.application.use_cases.auth.list_pending_role_requests import (
     ListPendingRoleRequestsUseCase,
 )
+from app.application.use_cases.auth.list_users import ListUsersUseCase
 from app.application.use_cases.auth.login import LoginUseCase
 from app.application.use_cases.auth.logout import LogoutUseCase
 from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
@@ -110,6 +111,12 @@ def get_ban_user_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ) -> BanUserUseCase:
     return BanUserUseCase(user_repo)
+
+
+def get_list_users_use_case(
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+) -> ListUsersUseCase:
+    return ListUsersUseCase(user_repo)
 
 
 def get_list_active_user_ids_use_case(

@@ -61,6 +61,19 @@ class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
         result = await self._session.execute(query)
         return list(result.scalars().all())
 
+    async def list_users(self, state: UserState | None = None) -> list[User]:
+        """Every user, newest first, for the admin screen.
+
+        Unpaginated on purpose for now: this is a platform with a few hundred accounts and one
+        screen that shows them. Adding a page parameter that nothing passes would be machinery
+        with no reader — the same mistake the outbox nobody subscribed to was.
+        """
+        query = select(UserModel).order_by(UserModel.created_at.desc())
+        if state is not None:
+            query = query.where(UserModel.state == state)
+        result = await self._session.execute(query)
+        return [_to_domain_user(row) for row in result.scalars().all()]
+
     async def save(self, user: User, outbox_events: Sequence[DomainEvent]) -> None:
         row = await self._session.get(UserModel, user.id)
         if row is None:

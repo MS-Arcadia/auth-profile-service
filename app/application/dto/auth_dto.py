@@ -65,6 +65,21 @@ class UserSummaryResponse(BaseModel):
     state: str
 
 
+class AdminUserResponse(BaseModel):
+    """One account as the admin screen shows it.
+
+    The password hash is not here and must not be: this is read by a browser, and a hash that
+    reaches one is a hash somebody can work on offline.
+    """
+
+    user_id: str
+    email: EmailStr
+    display_name: str
+    role: str
+    state: str
+    created_at: datetime
+
+
 class PendingRoleRequestResponse(BaseModel):
     request_id: str
     user_id: str

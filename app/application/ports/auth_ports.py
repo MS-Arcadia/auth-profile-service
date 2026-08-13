@@ -17,6 +17,11 @@ class UserRepositoryPort(ABC):
     async def get_by_email(self, email: str) -> User | None: ...
 
     @abstractmethod
+    async def list_users(self, state: UserState | None = None) -> list[User]:
+        """Every user, for the admin screen that grants roles and bans accounts."""
+        ...
+
+    @abstractmethod
     async def list_ids_by_state(self, state: UserState, role: Role | None = None) -> list[str]:
         """Return the ids of every user in the given state.
 
