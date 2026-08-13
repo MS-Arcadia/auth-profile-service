@@ -73,7 +73,18 @@ class AdminUserResponse(BaseModel):
     """
 
     user_id: str
-    email: EmailStr
+    # `str`, like every other response here, and deliberately not EmailStr.
+    #
+    # Validating an address on the way *out* means one unusable row takes down the whole
+    # screen: the super admin was seeded as admin@arcadia.local before that address was
+    # changed, .local is reserved by RFC 6762, and email-validator rejected it — so listing
+    # the directory answered 500 and the admin saw nobody at all.
+    #
+    # An address is checked when it arrives, at registration. By the time it is in the
+    # database the question is no longer whether it is valid: this is the screen somebody
+    # opens to *find* an account like that, and refusing to display it is the opposite of
+    # what the page is for.
+    email: str
     display_name: str
     role: str
     state: str
