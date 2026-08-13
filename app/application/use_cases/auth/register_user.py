@@ -1,3 +1,5 @@
+import asyncio
+
 from app.application.ports.auth_ports import PasswordHasherPort, UserRepositoryPort
 from app.domain.auth.exceptions import DuplicateEmailError
 from app.domain.auth.user import User
@@ -13,7 +15,9 @@ class RegisterUserUseCase:
         if existing is not None:
             raise DuplicateEmailError(email)
 
-        password_hash = self._hasher.hash(password)
+        # Off the event loop, for the same reason as the sign-in path: hashing is the most
+        # expensive thing this service does and it must not stop the process answering.
+        password_hash = await asyncio.to_thread(self._hasher.hash, password)
         user = User.register(email=email, password_hash=password_hash, display_name=display_name)
 
         events = user.pull_events()
