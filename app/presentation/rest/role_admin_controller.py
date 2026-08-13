@@ -108,6 +108,7 @@ async def ban_user(
 )
 async def list_user_ids(
     user_state: UserState = Query(UserState.ACTIVE, alias="status"),
+    role: Role | None = Query(None),
     current_user: CurrentUser = Depends(get_current_user),
     use_case: ListActiveUserIdsUseCase = Depends(get_list_active_user_ids_use_case),
 ):
@@ -116,8 +117,11 @@ async def list_user_ids(
     Meant for service-to-service calls that need "everyone" — e.g. festival-service
     populating a platform-wide `FestivalStarted` notification audience — not for browser
     clients, hence living under `/admin` next to the other SUPPORT/ADMIN-only routes.
+
+    `role` narrows it to one role. notification-service uses that to address the people
+    who can act on something — a game waiting for review goes to SUPPORT, not to everyone.
     """
-    return await use_case.execute(current_user.role, user_state)
+    return await use_case.execute(current_user.role, user_state, role)
 
 
 @router.post(
