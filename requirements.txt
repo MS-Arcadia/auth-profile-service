@@ -12,7 +12,9 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.2.0
 
 # Messaging
-aiokafka==0.11.0
+# The Go services produce with snappy; without the codec a consumer raises
+# UnsupportedCodecError on the first message and its loop dies.
+aiokafka[snappy,lz4,zstd]==0.11.0
 
 # Cache
 redis==5.0.8
