@@ -9,8 +9,6 @@ class ListPendingRoleRequestsUseCase:
 
     async def execute(self, actor_role: Role):
         if actor_role not in (Role.SUPPORT, Role.ADMIN):
-            raise InvalidRoleTransitionError(
-                "Only SUPPORT or ADMIN can list pending role requests."
-            )
+            raise InvalidRoleTransitionError("Only SUPPORT or ADMIN can list pending role requests.")
 
         return await self._role_request_repo.list_pending_role_requests()

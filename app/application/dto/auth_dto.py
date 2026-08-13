@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
@@ -62,6 +63,7 @@ class UserSummaryResponse(BaseModel):
     display_name: str
     role: str
     state: str
+
 
 class PendingRoleRequestResponse(BaseModel):
     request_id: str

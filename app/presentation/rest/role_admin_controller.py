@@ -4,6 +4,7 @@ from app.application.dto.auth_dto import (
     BanRequest,
     DecideRoleRequest,
     GrantRoleRequest,
+    PendingRoleRequestResponse,
     RequestRoleRequest,
     RoleRequestResponse,
 )
@@ -12,29 +13,10 @@ from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
 from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
-from app.application.use_cases.auth.request_role import RequestRoleUseCase
-from app.core.dependencies import (
-    get_approve_registration_use_case,
-    get_ban_user_use_case,
-    get_decide_role_request_use_case,
-    get_grant_role_use_case,
-    get_list_active_user_ids_use_case,
-    get_request_role_use_case,
-)
-from app.core.security_deps import CurrentUser, get_current_user, require_roles
-from app.domain.auth.enums import Role, UserState
-from app.application.dto.auth_dto import PendingRoleRequestResponse
 from app.application.use_cases.auth.list_pending_role_requests import (
     ListPendingRoleRequestsUseCase,
 )
-from app.application.dto.auth_dto import (
-    BanRequest,
-    DecideRoleRequest,
-    GrantRoleRequest,
-    PendingRoleRequestResponse,
-    RequestRoleRequest,
-    RoleRequestResponse,
-)
+from app.application.use_cases.auth.request_role import RequestRoleUseCase
 from app.core.dependencies import (
     get_approve_registration_use_case,
     get_ban_user_use_case,
@@ -44,6 +26,9 @@ from app.core.dependencies import (
     get_list_pending_role_requests_use_case,
     get_request_role_use_case,
 )
+from app.core.security_deps import CurrentUser, get_current_user, require_roles
+from app.domain.auth.enums import Role, UserState
+
 router = APIRouter(tags=["Roles & Admin"])
 
 
@@ -148,6 +133,7 @@ async def unban_user(
     """SUPPORT/ADMIN unbans a user (BANNED -> ACTIVE)."""
     await use_case.execute(current_user.role, user_id, False, current_user.user_id)
 
+
 @router.get(
     "/admin/role-requests/pending",
     response_model=list[PendingRoleRequestResponse],
@@ -155,9 +141,7 @@ async def unban_user(
 )
 async def list_pending_role_requests(
     current_user: CurrentUser = Depends(get_current_user),
-    use_case: ListPendingRoleRequestsUseCase = Depends(
-        get_list_pending_role_requests_use_case
-    ),
+    use_case: ListPendingRoleRequestsUseCase = Depends(get_list_pending_role_requests_use_case),
 ):
     """Return all pending role requests for SUPPORT/ADMIN."""
     role_requests = await use_case.execute(current_user.role)

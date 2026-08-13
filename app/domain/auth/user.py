@@ -32,10 +32,16 @@ class User:
             # it can be used, and the state machine it specifies starts there:
             # PENDING → ACTIVE | REJECTED, then ACTIVE ↔ BANNED.
             #
-            # This said ACTIVE, which made the whole approve/reject flow unreachable — nobody can
-            # be approved when everybody is already active — and failed five of this service's own
-            # tests, which had it right.
-            state=UserState.ACTIVE,
+            # This said ACTIVE twice now. The second time came with a pending-users API in the
+            # same commit, which is self-defeating: that endpoint lists accounts awaiting a
+            # decision, and there are none if registration never produces one.
+            #
+            # The reason it kept getting flipped was real, though. The seeded Super-Admin could
+            # not log in — its address was admin@arcadia.local, and `.local` is reserved by
+            # RFC 6762, so the email validator refused it. With nobody able to approve anything,
+            # PENDING meant nobody could ever get in. That address is fixed, so approving works
+            # and this can stay where requirement 1.1 puts it.
+            state=UserState.PENDING,
         )
         user._raise(
             ev.UserRegistered(

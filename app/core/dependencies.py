@@ -6,6 +6,9 @@ from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
 from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
+from app.application.use_cases.auth.list_pending_role_requests import (
+    ListPendingRoleRequestsUseCase,
+)
 from app.application.use_cases.auth.login import LoginUseCase
 from app.application.use_cases.auth.logout import LogoutUseCase
 from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
@@ -22,9 +25,7 @@ from app.infrastructure.db.session import get_db_session
 from app.infrastructure.messaging.kafka_producer import KafkaEventPublisher
 from app.infrastructure.security.jwt_provider import JwtTokenProvider
 from app.infrastructure.security.password_encoder import BcryptPasswordEncoder
-from app.application.use_cases.auth.list_pending_role_requests import (
-    ListPendingRoleRequestsUseCase,
-)
+
 _password_hasher = BcryptPasswordEncoder()
 _jwt_provider = JwtTokenProvider()
 
@@ -136,6 +137,7 @@ def get_hide_game_use_case(
     profile_repo: SqlAlchemyProfileRepository = Depends(get_profile_repository),
 ) -> HideGameUseCase:
     return HideGameUseCase(profile_repo)
+
 
 def get_list_pending_role_requests_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
