@@ -65,6 +65,20 @@ class UserSummaryResponse(BaseModel):
     state: str
 
 
+class RecipientResponse(BaseModel):
+    """Just enough to confirm you are sending a gift to the right person.
+
+    The id, because that is what a gift is addressed with, and the display name, so the
+    sender can see whose it is before they pay. Nothing else — not the email that was
+    typed to find them, not their role, not their state. A lookup that answers more than
+    the question is a directory.
+    """
+
+    user_id: str
+    display_name: str
+    avatar_url: str = ""
+
+
 class AdminUserResponse(BaseModel):
     """One account as the admin screen shows it.
 

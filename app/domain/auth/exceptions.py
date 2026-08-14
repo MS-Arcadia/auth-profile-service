@@ -51,6 +51,27 @@ class UserNotFoundError(DomainError):
         self.user_id = user_id
 
 
+class RecipientNotFoundError(DomainError):
+    """Nobody on this platform answers to what was typed."""
+
+    def __init__(self, query: str):
+        super().__init__(f"No active account matches '{query}'.")
+        self.query = query
+
+
+class RecipientNotUniqueError(DomainError):
+    """Two people share that display name.
+
+    Reported rather than resolved to the first match: picking one is how a gift reaches a
+    stranger who happens to share a name with the intended recipient.
+    """
+
+    def __init__(self, query: str, count: int):
+        super().__init__(f"{count} accounts are called '{query}'. Use their email address instead.")
+        self.query = query
+        self.count = count
+
+
 class RoleRequestNotFoundError(DomainError):
     def __init__(self, request_id: str):
         super().__init__(f"Role request '{request_id}' was not found.")

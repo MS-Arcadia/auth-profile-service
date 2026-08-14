@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.use_cases.auth.approve_registration import ApproveRegistrationUseCase
 from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
+from app.application.use_cases.auth.find_recipient import FindRecipientUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
 from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
 from app.application.use_cases.auth.list_pending_role_requests import (
@@ -117,6 +118,12 @@ def get_list_users_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ) -> ListUsersUseCase:
     return ListUsersUseCase(user_repo)
+
+
+def get_find_recipient_use_case(
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+) -> FindRecipientUseCase:
+    return FindRecipientUseCase(user_repo)
 
 
 def get_list_active_user_ids_use_case(

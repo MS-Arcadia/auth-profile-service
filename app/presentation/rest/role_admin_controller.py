@@ -6,12 +6,14 @@ from app.application.dto.auth_dto import (
     DecideRoleRequest,
     GrantRoleRequest,
     PendingRoleRequestResponse,
+    RecipientResponse,
     RequestRoleRequest,
     RoleRequestResponse,
 )
 from app.application.use_cases.auth.approve_registration import ApproveRegistrationUseCase
 from app.application.use_cases.auth.ban_user import BanUserUseCase
 from app.application.use_cases.auth.decide_role_request import DecideRoleRequestUseCase
+from app.application.use_cases.auth.find_recipient import FindRecipientUseCase
 from app.application.use_cases.auth.grant_role import GrantRoleUseCase
 from app.application.use_cases.auth.list_active_user_ids import ListActiveUserIdsUseCase
 from app.application.use_cases.auth.list_pending_role_requests import (
@@ -23,6 +25,7 @@ from app.core.dependencies import (
     get_approve_registration_use_case,
     get_ban_user_use_case,
     get_decide_role_request_use_case,
+    get_find_recipient_use_case,
     get_grant_role_use_case,
     get_list_active_user_ids_use_case,
     get_list_pending_role_requests_use_case,
@@ -102,6 +105,28 @@ async def ban_user(
 ):
     """SUPPORT/ADMIN bans a user (ACTIVE -> BANNED)."""
     await use_case.execute(current_user.role, user_id, True, current_user.user_id, body.reason or "")
+
+
+@router.get("/users/lookup", response_model=RecipientResponse)
+async def lookup_recipient(
+    q: str = Query(min_length=1, max_length=255, description="An email address, or an exact display name"),
+    _current_user: CurrentUser = Depends(get_current_user),
+    use_case: FindRecipientUseCase = Depends(get_find_recipient_use_case),
+):
+    """Find the person a gift is for.
+
+    A gift is addressed by account id — a UUID — and nobody knows their friend's UUID. The
+    storefront's gift box asked for one anyway and sent whatever was typed, so a display
+    name went through as an id, nothing checked it, and the game landed on an account that
+    did not exist while the buyer was charged in full.
+
+    Any signed-in account may ask, because anyone may send a gift. It is deliberately not a
+    search: exact email or exact display name, one result or none. That answers "is this
+    specific person here" for somebody about to send them something without becoming a way
+    to enumerate the platform.
+    """
+    user = await use_case.execute(q)
+    return RecipientResponse(user_id=user.id, display_name=user.display_name)
 
 
 @router.get(

@@ -10,6 +10,8 @@ from app.domain.auth.exceptions import (
     InvalidCredentialsError,
     InvalidRoleTransitionError,
     InvalidStateTransitionError,
+    RecipientNotFoundError,
+    RecipientNotUniqueError,
     RoleRequestAlreadyDecidedError,
     RoleRequestNotFoundError,
     TokenError,
@@ -32,6 +34,8 @@ _STATUS_MAP = {
     RoleRequestNotFoundError: status.HTTP_404_NOT_FOUND,
     RoleRequestAlreadyDecidedError: status.HTTP_409_CONFLICT,
     ProfileNotFoundError: status.HTTP_404_NOT_FOUND,
+    RecipientNotFoundError: status.HTTP_404_NOT_FOUND,
+    RecipientNotUniqueError: status.HTTP_409_CONFLICT,
 }
 
 

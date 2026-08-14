@@ -22,6 +22,11 @@ class UserRepositoryPort(ABC):
         ...
 
     @abstractmethod
+    async def find_active_by_display_name(self, display_name: str) -> list[User]:
+        """Active accounts with exactly this display name. A list, because it is not unique."""
+        ...
+
+    @abstractmethod
     async def list_ids_by_state(self, state: UserState, role: Role | None = None) -> list[str]:
         """Return the ids of every user in the given state.
 

@@ -2,7 +2,7 @@ import json
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.auth_ports import RoleRequestRepositoryPort, UserRepositoryPort
@@ -53,6 +53,20 @@ class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
         result = await self._session.execute(select(UserModel).where(UserModel.email == email))
         row = result.scalar_one_or_none()
         return _to_domain_user(row) if row else None
+
+    async def find_active_by_display_name(self, display_name: str) -> list[User]:
+        """Active accounts whose display name matches exactly, case-insensitively.
+
+        A list because `display_name` carries no unique constraint — two people may share
+        one. The caller decides what to do about that rather than this silently picking the
+        first, which is how a gift reaches the wrong person.
+        """
+        query = select(UserModel).where(
+            func.lower(UserModel.display_name) == display_name.strip().lower(),
+            UserModel.state == UserState.ACTIVE,
+        )
+        result = await self._session.execute(query)
+        return [_to_domain_user(row) for row in result.scalars().all()]
 
     async def list_ids_by_state(self, state: UserState, role: Role | None = None) -> list[str]:
         query = select(UserModel.id).where(UserModel.state == state)
