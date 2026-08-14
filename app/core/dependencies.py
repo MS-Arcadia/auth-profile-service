@@ -18,6 +18,7 @@ from app.application.use_cases.auth.register_user import RegisterUserUseCase
 from app.application.use_cases.auth.request_role import RequestRoleUseCase
 from app.application.use_cases.profile.get_profile import GetProfileUseCase
 from app.application.use_cases.profile.hide_game import HideGameUseCase
+from app.application.use_cases.profile.set_avatar import SetAvatarUseCase
 from app.application.use_cases.profile.update_presence import UpdatePresenceUseCase
 from app.infrastructure.cache.redis_presence_store import RedisPresenceStore
 from app.infrastructure.cache.redis_token_blacklist import RedisTokenBlacklist
@@ -151,6 +152,12 @@ def get_hide_game_use_case(
     profile_repo: SqlAlchemyProfileRepository = Depends(get_profile_repository),
 ) -> HideGameUseCase:
     return HideGameUseCase(profile_repo)
+
+
+def get_set_avatar_use_case(
+    profile_repo: SqlAlchemyProfileRepository = Depends(get_profile_repository),
+) -> SetAvatarUseCase:
+    return SetAvatarUseCase(profile_repo)
 
 
 def get_list_pending_role_requests_use_case(

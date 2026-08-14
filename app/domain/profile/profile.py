@@ -43,6 +43,9 @@ class Profile:
     def set_presence(self, online: bool) -> None:
         self.online = online
 
+    def set_avatar(self, avatar_url: str) -> None:
+        self.avatar_url = avatar_url.strip()
+
     def upsert_top_posts(self, candidate: TopPost) -> None:
         self.top_posts = [p for p in self.top_posts if p.post_id != candidate.post_id]
         self.top_posts.append(candidate)

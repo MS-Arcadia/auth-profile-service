@@ -1,18 +1,34 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from app.application.dto.profile_dto import (
     OwnedGameResponse,
     OwnedItemResponse,
     ProfileResponse,
+    SetAvatarRequest,
     TopPostResponse,
 )
 from app.application.use_cases.profile.get_profile import GetProfileUseCase
-from app.core.dependencies import get_profile_use_case
-from app.core.security_deps import CurrentUser, get_optional_user
+from app.application.use_cases.profile.set_avatar import SetAvatarUseCase
+from app.core.dependencies import get_profile_use_case, get_set_avatar_use_case
+from app.core.security_deps import CurrentUser, get_current_user, get_optional_user
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
+
+
+@router.post("/avatar", status_code=status.HTTP_204_NO_CONTENT)
+async def set_avatar(
+    body: SetAvatarRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    use_case: SetAvatarUseCase = Depends(get_set_avatar_use_case),
+):
+    """Store a public media URL as this account's avatar.
+
+    The bytes live in media-service. This service keeps the URL the same way
+    catalog keeps a teaser: a string, not the file.
+    """
+    await use_case.execute(current_user.user_id, body.avatar_url)
 
 
 @router.get("/{user_id}", response_model=ProfileResponse)

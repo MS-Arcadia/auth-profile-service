@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class OwnedGameResponse(BaseModel):
@@ -29,3 +29,7 @@ class ProfileResponse(BaseModel):
 
 class HideGameRequest(BaseModel):
     game_id: str
+
+
+class SetAvatarRequest(BaseModel):
+    avatar_url: str = Field(max_length=512)

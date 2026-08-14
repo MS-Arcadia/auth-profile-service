@@ -16,6 +16,12 @@ def test_top_posts_keeps_only_top_5():
     assert scores == [9, 8, 7, 6, 5]
 
 
+def test_set_avatar_stores_the_trimmed_url():
+    profile = Profile(user_id="u1", display_name="Alice")
+    profile.set_avatar("  https://minio.example/arcadia-media/ab/cd/id  ")
+    assert profile.avatar_url == "https://minio.example/arcadia-media/ab/cd/id"
+
+
 def test_hide_game_removes_from_visible_but_not_from_storage():
     profile = Profile(user_id="u1", display_name="Alice")
     profile.add_owned_game(OwnedGame(id="1", user_id="u1", game_id="game-1"))
