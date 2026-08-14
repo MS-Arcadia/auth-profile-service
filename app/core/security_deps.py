@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -9,6 +11,7 @@ from app.domain.auth.exceptions import TokenError
 from app.infrastructure.security.jwt_provider import JwtTokenProvider
 
 _bearer_scheme = HTTPBearer(auto_error=True)
+_optional_bearer = HTTPBearer(auto_error=False)
 _jwt_provider = JwtTokenProvider()
 
 
@@ -32,6 +35,24 @@ async def get_current_user(
         # HTTPException as though it arose on its own inside the handler.
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
+    return CurrentUser(user_id=claims["sub"], role=Role(claims["role"]))
+
+
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_optional_bearer),
+) -> CurrentUser | None:
+    """A signed-in caller if a token was sent, otherwise a visitor.
+
+    Public profile pages are meant to be readable without an account. Requiring a
+    bearer token made every unauthenticated GET 401, and the storefront rendered
+    that as "Profile not found".
+    """
+    if credentials is None:
+        return None
+    try:
+        claims = _jwt_provider.decode_access_token(credentials.credentials)
+    except TokenError:
+        return None
     return CurrentUser(user_id=claims["sub"], role=Role(claims["role"]))
 
 

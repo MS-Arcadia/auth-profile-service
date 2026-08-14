@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends
 
 from app.application.dto.profile_dto import (
@@ -8,7 +10,7 @@ from app.application.dto.profile_dto import (
 )
 from app.application.use_cases.profile.get_profile import GetProfileUseCase
 from app.core.dependencies import get_profile_use_case
-from app.core.security_deps import CurrentUser, get_current_user
+from app.core.security_deps import CurrentUser, get_optional_user
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
@@ -16,7 +18,7 @@ router = APIRouter(prefix="/profile", tags=["Profile"])
 @router.get("/{user_id}", response_model=ProfileResponse)
 async def get_profile(
     user_id: str,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser | None = Depends(get_optional_user),
     use_case: GetProfileUseCase = Depends(get_profile_use_case),
 ):
     """One profile, as its owner or as a visitor.
@@ -30,7 +32,7 @@ async def get_profile(
     and the domain method behind it both existed and were unreachable.
     """
     profile = await use_case.execute(user_id)
-    is_owner = current_user.user_id == user_id
+    is_owner = current_user is not None and current_user.user_id == user_id
     games = profile.owned_games if is_owner else profile.visible_games()
     return ProfileResponse(
         user_id=profile.user_id,

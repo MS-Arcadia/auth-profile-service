@@ -65,6 +65,10 @@ async def presence_heartbeat(websocket: WebSocket):
 
     try:
         await use_case.execute(user_id)
+        # An ASCII ack, so the client (and anyone reading the frame log) can see the
+        # socket is authenticated. The old client sent a UTF-8 heart; proxies that
+        # decoded it as Latin-1 showed `â™¥` and looked broken.
+        await websocket.send_text("ok")
         while True:
             try:
                 await asyncio.wait_for(websocket.receive_text(), timeout=PRESENCE_TTL_SECONDS)
@@ -73,5 +77,6 @@ async def presence_heartbeat(websocket: WebSocket):
                 # is nothing to clean up — letting go is the whole of "went offline".
                 break
             await use_case.execute(user_id)
+            await websocket.send_text("pong")
     except WebSocketDisconnect:
         logger.info("Presence WebSocket disconnected for user_id=%s", user_id)
