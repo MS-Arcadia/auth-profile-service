@@ -7,6 +7,7 @@ from app.application.dto.auth_dto import (
     GrantRoleRequest,
     PendingRoleRequestResponse,
     RecipientResponse,
+    RecipientSuggestion,
     RequestRoleRequest,
     RoleRequestResponse,
 )
@@ -21,6 +22,7 @@ from app.application.use_cases.auth.list_pending_role_requests import (
 )
 from app.application.use_cases.auth.list_users import ListUsersUseCase
 from app.application.use_cases.auth.request_role import RequestRoleUseCase
+from app.application.use_cases.auth.suggest_recipients import SuggestRecipientsUseCase
 from app.core.dependencies import (
     get_approve_registration_use_case,
     get_ban_user_use_case,
@@ -31,6 +33,7 @@ from app.core.dependencies import (
     get_list_pending_role_requests_use_case,
     get_list_users_use_case,
     get_request_role_use_case,
+    get_suggest_recipients_use_case,
 )
 from app.core.security_deps import CurrentUser, get_current_user, require_roles
 from app.domain.auth.enums import Role, UserState
@@ -127,6 +130,22 @@ async def lookup_recipient(
     """
     user = await use_case.execute(q)
     return RecipientResponse(user_id=user.id, display_name=user.display_name)
+
+
+@router.get("/users/suggest", response_model=list[RecipientSuggestion])
+async def suggest_recipients(
+    q: str = Query(min_length=1, max_length=255, description="Start of an email address or display name"),
+    current_user: CurrentUser = Depends(get_current_user),
+    use_case: SuggestRecipientsUseCase = Depends(get_suggest_recipients_use_case),
+):
+    """Prefix suggestions for the gift box, as the sender types.
+
+    Lookup stays exact. This is the autocomplete: a short list of ACTIVE accounts
+    whose email or display name starts with `q`. The caller is omitted. Email is
+    included so an unfinished address can be picked from the list.
+    """
+    users = await use_case.execute(q, exclude_user_id=current_user.user_id)
+    return [RecipientSuggestion(user_id=user.id, display_name=user.display_name, email=user.email) for user in users]
 
 
 @router.get(

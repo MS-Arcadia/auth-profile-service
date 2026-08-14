@@ -2,7 +2,7 @@ import json
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.auth_ports import RoleRequestRepositoryPort, UserRepositoryPort
@@ -40,6 +40,15 @@ def _to_domain_role_request(row: RoleRequestModel) -> RoleRequest:
     )
 
 
+def _like_fragment(query: str) -> str:
+    """Escape LIKE metacharacters so a typed `%` or `_` is literal.
+
+    `!` is the escape character (passed to SQLAlchemy as `escape='!'`). A
+    backslash would fight PostgreSQL's own string escaping; bang does not.
+    """
+    return query.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+
+
 class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
     def __init__(self, session: AsyncSession):
         self._session = session
@@ -66,6 +75,31 @@ class SqlAlchemyUserRepository(UserRepositoryPort, RoleRequestRepositoryPort):
             UserModel.state == UserState.ACTIVE,
         )
         result = await self._session.execute(query)
+        return [_to_domain_user(row) for row in result.scalars().all()]
+
+    async def search_active(self, query: str, *, limit: int, exclude_user_id: str = "") -> list[User]:
+        """Prefix search over ACTIVE accounts for the gift-box autocomplete.
+
+        `!` is the LIKE escape so a typed `%` or `_` is a character, not a wildcard —
+        otherwise `%%` would list everybody. Word-prefix (`% Farr%`) is how a last
+        name finds `Nadia Farr` without turning this into a contains-search.
+        """
+        fragment = _like_fragment(query.strip())
+        prefix = f"{fragment}%"
+        word = f"% {fragment}%"
+        conditions = [
+            UserModel.state == UserState.ACTIVE,
+            or_(
+                UserModel.email.ilike(prefix, escape="!"),
+                UserModel.display_name.ilike(prefix, escape="!"),
+                UserModel.display_name.ilike(word, escape="!"),
+            ),
+        ]
+        if exclude_user_id:
+            conditions.append(UserModel.id != exclude_user_id)
+        result = await self._session.execute(
+            select(UserModel).where(*conditions).order_by(UserModel.display_name.asc()).limit(limit)
+        )
         return [_to_domain_user(row) for row in result.scalars().all()]
 
     async def list_ids_by_state(self, state: UserState, role: Role | None = None) -> list[str]:

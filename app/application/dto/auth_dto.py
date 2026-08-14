@@ -79,6 +79,20 @@ class RecipientResponse(BaseModel):
     avatar_url: str = ""
 
 
+class RecipientSuggestion(BaseModel):
+    """One row in the gift-box autocomplete.
+
+    Email is here on purpose: lookup withholds it because that call confirms a person
+    already named, but suggestions exist to finish an address that is still being typed.
+    Without the email, `player@arcadia.exampl` cannot be picked from a list of names.
+    """
+
+    user_id: str
+    display_name: str
+    email: str
+    avatar_url: str = ""
+
+
 class AdminUserResponse(BaseModel):
     """One account as the admin screen shows it.
 

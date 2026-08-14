@@ -27,6 +27,16 @@ class UserRepositoryPort(ABC):
         ...
 
     @abstractmethod
+    async def search_active(self, query: str, *, limit: int, exclude_user_id: str = "") -> list[User]:
+        """ACTIVE accounts whose email or display name starts with `query`.
+
+        Also matches a later word of the display name (`Farr` → `Nadia Farr`), so a
+        last name is enough to type. Prefix, not contains — `dia` must not list Nadia.
+        `exclude_user_id` drops the caller so they are not suggested themselves.
+        """
+        ...
+
+    @abstractmethod
     async def list_ids_by_state(self, state: UserState, role: Role | None = None) -> list[str]:
         """Return the ids of every user in the given state.
 

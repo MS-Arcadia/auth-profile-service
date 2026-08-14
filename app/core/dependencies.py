@@ -16,6 +16,7 @@ from app.application.use_cases.auth.logout import LogoutUseCase
 from app.application.use_cases.auth.refresh_token import RefreshTokenUseCase
 from app.application.use_cases.auth.register_user import RegisterUserUseCase
 from app.application.use_cases.auth.request_role import RequestRoleUseCase
+from app.application.use_cases.auth.suggest_recipients import SuggestRecipientsUseCase
 from app.application.use_cases.profile.get_profile import GetProfileUseCase
 from app.application.use_cases.profile.hide_game import HideGameUseCase
 from app.application.use_cases.profile.set_avatar import SetAvatarUseCase
@@ -125,6 +126,12 @@ def get_find_recipient_use_case(
     user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
 ) -> FindRecipientUseCase:
     return FindRecipientUseCase(user_repo)
+
+
+def get_suggest_recipients_use_case(
+    user_repo: SqlAlchemyUserRepository = Depends(get_user_repository),
+) -> SuggestRecipientsUseCase:
+    return SuggestRecipientsUseCase(user_repo)
 
 
 def get_list_active_user_ids_use_case(
