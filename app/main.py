@@ -153,11 +153,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(CorrelationIdMiddleware)
-
 register_exception_handlers(app)
 configure_metrics(app, service=settings.app_name)
 configure_tracing(app)
+
+# Added last, deliberately: Starlette's add_middleware() prepends, so whichever
+# middleware is registered last ends up outermost — directly under
+# ServerErrorMiddleware, with nothing else between them. configure_metrics()
+# registers its own BaseHTTPMiddleware via @app.middleware("http"), and that
+# used to be added *after* this one, putting metrics outer and correlation
+# inner. BaseHTTPMiddleware runs everything inside it in a separate anyio task
+# and, on an exception, re-raises it back in the *parent* task rather than the
+# one where set_correlation_id() ran — so the id set inside the inner
+# middleware's task was invisible by the time an outer layer's exception
+# handler (register_exception_handlers's catch-all `Exception` handler, which
+# Starlette pulls out into ServerErrorMiddleware regardless of where it's
+# registered) tried to log it. Being outermost means no such hop happens:
+# the id is set in the same task ServerErrorMiddleware itself runs in.
+app.add_middleware(CorrelationIdMiddleware)
 
 # --- Rate limiting (slowapi) ---
 app.state.limiter = auth_controller.limiter
