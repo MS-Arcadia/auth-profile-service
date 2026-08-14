@@ -24,10 +24,9 @@ class Role(StrEnum):
 class UserState(StrEnum):
     """
     Account state machine:
-        PENDING  -> ACTIVE
-        PENDING  -> REJECTED
         ACTIVE   -> BANNED
         BANNED   -> ACTIVE
+        PENDING  -> ACTIVE | REJECTED  (leftover accounts; registration starts ACTIVE)
     """
 
     PENDING = "PENDING"

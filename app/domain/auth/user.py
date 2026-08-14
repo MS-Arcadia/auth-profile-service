@@ -28,20 +28,11 @@ class User:
             password_hash=password_hash,
             display_name=display_name,
             role=Role.BASIC_USER,
-            # PENDING, not ACTIVE. Requirement 1.1 puts a new account in front of Support before
-            # it can be used, and the state machine it specifies starts there:
-            # PENDING → ACTIVE | REJECTED, then ACTIVE ↔ BANNED.
-            #
-            # This said ACTIVE twice now. The second time came with a pending-users API in the
-            # same commit, which is self-defeating: that endpoint lists accounts awaiting a
-            # decision, and there are none if registration never produces one.
-            #
-            # The reason it kept getting flipped was real, though. The seeded Super-Admin could
-            # not log in — its address was admin@arcadia.local, and `.local` is reserved by
-            # RFC 6762, so the email validator refused it. With nobody able to approve anything,
-            # PENDING meant nobody could ever get in. That address is fixed, so approving works
-            # and this can stay where requirement 1.1 puts it.
-            state=UserState.PENDING,
+            # ACTIVE immediately. A BASIC_USER does not wait for Support — they sign in
+            # as soon as the account exists. Role upgrades still go through an
+            # administrator. PENDING remains a state so leftover accounts can still be
+            # decided, but registration no longer produces one.
+            state=UserState.ACTIVE,
         )
         user._raise(
             ev.UserRegistered(

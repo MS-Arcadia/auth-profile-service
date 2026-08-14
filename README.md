@@ -95,7 +95,8 @@ REST on `http://localhost:8085`, OpenAPI at `/docs`, everything under `/v1`.
 
 A Super-Admin is seeded once on first boot from `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD`.
 There is nobody to approve the first administrator, so that account is created ACTIVE — every
-other account starts PENDING and waits for Support.
+other account is ACTIVE too. A BASIC_USER can sign in as soon as they register; role upgrades
+still wait for Support.
 
 ## Local development
 
