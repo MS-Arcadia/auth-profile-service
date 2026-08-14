@@ -16,16 +16,28 @@ router = APIRouter(prefix="/profile", tags=["Profile"])
 @router.get("/{user_id}", response_model=ProfileResponse)
 async def get_profile(
     user_id: str,
-    _current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     use_case: GetProfileUseCase = Depends(get_profile_use_case),
 ):
+    """One profile, as its owner or as a visitor.
+
+    The difference is the hidden games. A visitor sees the shelf its owner chose to show;
+    the owner sees all of it, each game carrying whether it is hidden.
+
+    That distinction is the whole reason `hidden` is in the response, and it was missing:
+    every caller got `visible_games()`, so the flag was always false and a game that had
+    been hidden vanished from the only screen that could have unhidden it. The unhide route
+    and the domain method behind it both existed and were unreachable.
+    """
     profile = await use_case.execute(user_id)
+    is_owner = current_user.user_id == user_id
+    games = profile.owned_games if is_owner else profile.visible_games()
     return ProfileResponse(
         user_id=profile.user_id,
         display_name=profile.display_name,
         avatar_url=profile.avatar_url,
         online=profile.online,
-        owned_games=[OwnedGameResponse(game_id=g.game_id, hidden=g.hidden) for g in profile.visible_games()],
+        owned_games=[OwnedGameResponse(game_id=g.game_id, hidden=g.hidden) for g in games],
         owned_items=[OwnedItemResponse(item_id=i.item_id, game_id=i.game_id) for i in profile.owned_items],
         top_posts=[
             TopPostResponse(post_id=p.post_id, feedback_score=p.feedback_score, rank=p.rank) for p in profile.top_posts
