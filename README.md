@@ -40,11 +40,13 @@ Each dependency arrow only points from **outside to inside** (`Presentation → 
 ## Implemented Features
 
 ### Auth
-- Registration (`POST /v1/auth/register`) → a `BASIC_USER` in state `PENDING`. It was created
-`ACTIVE`, which made the approve/reject flow unreachable and failed five of this service's own
-tests. A pending account gets a **403 naming the reason** rather than "invalid email or password":
-that branch is only reachable with the correct password, so it leaks nothing and saves a user
-waiting on Support from believing they mistyped it.
+- Registration (`POST /v1/auth/register`) → a `BASIC_USER` in state `ACTIVE`. A basic user does
+not wait for Support: they sign in as soon as the account exists, and only *role upgrades* go
+through an administrator. `PENDING` remains a state so accounts already in it can still be
+decided, but registration no longer produces one. An account that cannot sign in gets a **403
+naming the reason** rather than "invalid email or password": that branch is only reachable with
+the correct password, so it leaks nothing and saves somebody waiting on Support from believing
+they mistyped it.
 - Login with JWT access+refresh (`POST /auth/login`)
 - Refresh token (`POST /auth/refresh`) and Logout with revocation in Redis (`POST /auth/logout`)
 - Account state machine: `PENDING → ACTIVE/REJECTED`, `ACTIVE ↔ BANNED`
@@ -79,6 +81,113 @@ discretion, so making it automatic would be the platform deciding something a hu
 | **Compatibility** | Ports & Adapters architecture instead of direct SDK dependencies in Domain/Application |
 
 Note: As per the requirements, Auth and Profile are placed in one shared service/deployment, but internally they remain completely separated (separate auth/ and profile/ folders in each layer) and communicate only through Events (user-events) - exactly like two independent microservices.
+
+## Use cases
+
+### Identity
+
+| # | Use case | Actor | Notes |
+|---|---|---|---|
+| 1 | Register | Anyone | Lands `ACTIVE` as a `BASIC_USER` |
+| 2 | Sign in | Any account | Returns an access + refresh pair |
+| 3 | Refresh a session | Any account | |
+| 4 | Sign out | Any account | The refresh token is revoked in Redis |
+| 5 | Request a role | Basic user | Enters the pending-requests queue |
+| 6 | Decide a role request | Support / Admin | Approve or reject |
+| 7 | Grant a role directly | Admin | Bypasses the request flow |
+| 8 | Ban / unban an account | Support / Admin | |
+| 9 | Decide a pending registration | Support / Admin | For accounts still in `PENDING` |
+| 10 | List the user directory | Support / Admin | Name, email, role, state |
+| 11 | List account ids by role | Services | Feeds platform-wide announcements |
+| 12 | Look up a recipient | Any account | Resolves an email or exact display name to an id, for gifting |
+| 13 | Suggest recipients | Any account | Type-ahead for the same |
+
+### Profile
+
+| # | Use case | Actor | Notes |
+|---|---|---|---|
+| 14 | View a profile | Anyone signed in | Name, avatar, games, items, top 5 posts, live online status |
+| 15 | Hide a game from a profile | Owner | Visitors stop seeing it; the owner still does, marked hidden |
+| 16 | Unhide a game | Owner | |
+| 17 | Set an avatar | Owner | |
+| 18 | Broadcast presence | Any account | WebSocket heartbeat → Redis TTL → automatic offline |
+
+The hide/unhide pair has one subtlety worth stating: a hidden game is filtered out for
+*visitors* but still returned to the **owner**, marked `hidden`. Returning the filtered list
+to everybody made hiding permanent — the game vanished from the only screen that could bring
+it back.
+
+### Recipient lookup
+
+Deliberately not a search. Exact email, or exact display name when only one account has it;
+two matches is reported as ambiguous rather than resolved to the first, because picking one
+sends a stranger a game. It answers "is this specific person here" for somebody about to send
+them something, without becoming a way to enumerate the platform.
+
+## How it talks to the rest of the platform
+
+```mermaid
+graph LR
+    gw["api-gateway"] -->|"REST /auth/*<br/>+ WS /auth/ws/presence"| a["auth-profile-service"]
+    order["order-service"] -->|"REST: does this<br/>recipient exist?"| a
+    notif["notification-service"] -->|"REST: who is staff?"| a
+    fest["festival-service"] -->|"REST: platform audience"| a
+
+    a -->|"user-events:<br/>UserRegistered, RoleGranted,<br/>UserBanned"| topic(("user-events"))
+    topic --> wallet["wallet-service"]
+    topic --> mk["marketplace-service"]
+    topic --> rev["review-service"]
+    topic --> comm["community-service"]
+    topic --> notif
+
+    cat["catalog-service"] -->|"game-events:<br/>OwnershipGranted"| a
+    mk -->|"trade-events:<br/>ItemGranted, TradeMatched"| a
+    comm -->|"community-events:<br/>PostReacted"| a
+    wallet -->|"wallet-events:<br/>GiftCardAbuseDetected"| a
+
+    classDef s fill:#2d7dd2,stroke:#1a5a9e,color:#fff
+    classDef t fill:#f5a623,stroke:#c4841c,color:#000
+    class gw,a,order,notif,fest,wallet,mk,rev,comm,cat s
+    class topic t
+```
+
+| Direction | Peer | Why |
+|---|---|---|
+| Called by | order-service | Verifies a gift recipient exists before anything is charged |
+| Called by | notification-service | The SUPPORT and ADMIN ids for staff-directed notifications |
+| Called by | festival-service | The audience for a platform-wide announcement |
+| Publishes | `user-events` | Five services need to know who exists and what they may do |
+| Consumes | `game-events` | `LibraryProjector` — games on a profile |
+| Consumes | `trade-events` | `InventoryProjector` — items on a profile |
+| Consumes | `community-events` | `TopPostsProjector` — the top 5 shelf |
+| Consumes | `wallet-events` | Flags gift-card abuse for Support review — it never bans automatically, because requirement 1.5 asks a human to decide |
+
+The four projectors are the CQRS read side: a profile is assembled from events other
+services published, so rendering one costs a single local read rather than four
+cross-service calls.
+
+## Infrastructure
+
+| Concern | Choice |
+|---|---|
+| Language | Python 3.12, FastAPI |
+| Storage | PostgreSQL — `arcadia_auth`, SQLAlchemy 2 async + Alembic |
+| Messaging | Kafka via aiokafka, transactional outbox |
+| Cache | Redis — refresh-token revocation, presence TTL, rate limits |
+| Passwords | bcrypt via passlib, hashed **off the event loop** |
+| Port | 8085, plus the presence WebSocket |
+| Deployment | 1 replica, HPA to 4 at 70% CPU |
+
+Two resourcing notes specific to this service, both learned the hard way:
+
+**It runs with a full CPU core**, not the 150m the other services use. bcrypt is
+deliberately expensive; under a fifth of a core a single sign-in took longer than the
+liveness probe's one-second timeout, three failures killed the pod, and a handful of
+sign-ins was enough to take authentication down. Its probes also get five seconds.
+
+**Hashing runs in a thread.** It is synchronous, CPU-bound work, and running it directly in
+an async handler stops the process answering anything else — including `/livez` — for the
+duration.
 
 ## Running
 
