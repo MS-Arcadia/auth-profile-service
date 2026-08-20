@@ -1,5 +1,6 @@
 from app.application.ports.event_publisher_port import EventPublisherPort
 from app.application.ports.profile_ports import PresenceStorePort
+from app.config import settings
 from app.domain.profile.events import PresenceChanged
 
 PRESENCE_TTL_SECONDS = 30
@@ -17,7 +18,7 @@ class UpdatePresenceUseCase:
         if not was_online:
             event = PresenceChanged(user_id=user_id, online=True)
             await self._event_publisher.publish(
-                topic="presence-events",
+                topic=settings.kafka_topic_presence_events,
                 key=user_id,
                 payload={"event_type": event.event_type, **event.__dict__},
             )

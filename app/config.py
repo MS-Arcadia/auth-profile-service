@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     kafka_topic_user_events: str = "user-events"
     kafka_topic_wallet_events: str = "wallet-events"
     kafka_topic_game_events: str = "game-events"
+    # Presence heartbeats publish here when a user goes online. Owned by this service.
+    kafka_topic_presence_events: str = "presence-events"
     # Marketplace and Community do not exist yet. Named to match the convention so those consumers
     # start working the day those services ship.
     kafka_topic_trade_events: str = "trade-events"

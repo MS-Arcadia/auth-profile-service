@@ -11,8 +11,8 @@ were simply not there yet, which is worse than useless: it buries anything real.
 
 So two categories are created here:
 
-* the topic this service **produces** to (`user-events`), which is its own responsibility in the
-  same way every other service creates its own;
+* the topics this service **produces** to (`user-events`, `presence-events`), which are its own
+  responsibility in the same way every other service creates its own;
 * the topics it **consumes** from services that do not exist yet — Marketplace and Community. An
   empty topic is free, a consumer group on one is silent, and the alternative is either that log
   flood or not subscribing at all and having to remember to come back.
@@ -44,6 +44,7 @@ REPLICATION = 1
 def topics_to_create() -> list[str]:
     return [
         settings.kafka_topic_user_events,
+        settings.kafka_topic_presence_events,
         settings.kafka_topic_trade_events,
         settings.kafka_topic_community_events,
     ]
